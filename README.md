@@ -18,14 +18,75 @@ This project is not affiliated with the manufacturer in any way and takes no res
 
 ## Hardware Requirements
 
-- ESP32 development board
-- Rain Director controller with UART interface
-- Connections:
-  - RX: GPIO16
-  - TX: GPIO17
-  - Baud rate: 9600
+| Component | Description | Approx. Cost |
+|-----------|-------------|--------------|
+| ESP32 DevKit V1 | Main microcontroller | £5-10 |
+| MAX485 Module | RS-485 to TTL converter (auto-direction) | £1-3 |
+| 12V to 5V Buck Converter | Power from Rain Director | £2-5 |
+| RJ45 Breakout Board | Easy connection to Rain Director | £2-5 |
+| Cat5/Cat6 Cable | Short patch cable to cut | £1-3 |
+| Dupont Jumper Wires | For connections | £2-5 |
 
-## Installation
+**Total: ~£15-30**
+
+## Hardware Setup
+
+The Rain Director has a spare RJ45 socket on the bottom of the controller that provides RS-485 communication and power.
+
+### Rain Director RJ45 Pinout
+
+When looking at the RJ45 socket on the bottom of the Rain Director, the pins are numbered 1-8 from left to right:
+
+- **Pin 1**: RS-485 A (Data+)
+- **Pin 2**: RS-485 B (Data-)
+- **Pin 3**: Unknown (1.3V)
+- **Pin 4**: GND
+- **Pin 5**: GND
+- **Pin 6**: Unknown (1.4V)
+- **Pin 7**: +12V
+- **Pin 8**: +12V
+
+### Wiring Instructions
+
+#### Step 1: Power Supply (12V to 5V for ESP32)
+
+1. Connect **RJ45 Pin 7 or 8** (+12V) to the **Buck Converter IN+**
+2. Connect **RJ45 Pin 4 or 5** (GND) to the **Buck Converter IN-**
+3. Set the buck converter output to **5V** (not 3.3V)
+4. Connect **Buck Converter OUT+** to **ESP32 VIN** pin
+5. Connect **Buck Converter OUT-** to **ESP32 GND** pin
+
+⚠️ **Important**:
+- Set buck converter to **5V** output, not 3.3V
+- Connect to ESP32 **VIN** pin, not 3V3 (the 3V3 pin is an output)
+- The ESP32's onboard regulator converts 5V to 3.3V internally
+
+#### Step 2: RS-485 Communication (Rain Director to ESP32)
+
+1. Connect **RJ45 Pin 1** (RS-485 A) to **MAX485 A** terminal
+2. Connect **RJ45 Pin 2** (RS-485 B) to **MAX485 B** terminal
+3. Connect **RJ45 Pin 4 or 5** (GND) to **MAX485 GND**
+4. Connect **ESP32 3V3** pin to **MAX485 VCC**
+5. Connect **ESP32 GND** to **MAX485 GND**
+6. Connect **MAX485 TXD** to **ESP32 RX2** (GPIO16)
+7. Connect **MAX485 RXD** to **ESP32 TX2** (GPIO17)
+
+**Notes**:
+- The MAX485 is powered from the ESP32's 3V3 output pin (this is fine as it draws minimal current)
+- The MAX485 module should be an auto-direction type (no DE/RE control needed)
+- If data is garbled, try swapping the A and B connections
+
+### Connection Summary
+
+**Power Chain**: Rain Director 12V → Buck Converter (12V→5V) → ESP32 VIN
+
+**Data Chain**: Rain Director RS-485 → MAX485 (RS-485→TTL) → ESP32 UART2 (GPIO16/17)
+
+**Baud Rate**: 9600 (configured in the YAML)
+
+## Software Installation
+
+Once your ESP32 is wired up and powered, you can install the firmware.
 
 ### Option 1: ESPHome Dashboard (Recommended)
 
