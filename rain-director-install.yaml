@@ -1,0 +1,15 @@
+substitutions:
+  name: "rain-director"
+  friendly_name: "Rain Director"
+  tank_capacity: "80.0"  # Change to your tank capacity in liters
+
+packages:
+  remote_package:
+    url: https://github.com/pturner1989/esphome-rain-director
+    ref: main
+    files: [rain-director.yaml]
+    refresh: 1d
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password

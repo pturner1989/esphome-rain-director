@@ -1,7 +1,7 @@
 substitutions:
   name: "rain-director"
   friendly_name: "Rain Director"
-  tank_capacity: "100.0"  # Tank capacity in liters
+  tank_capacity: "80.0"  # Tank capacity in liters
 
 esphome:
   name: ${name}
@@ -31,10 +31,6 @@ wifi:
 captive_portal:
 
 improv_serial:
-
-dashboard_import:
-  package_import_url: github://yourusername/esphome-rain-director/rain-director.yaml@main  # Update with your GitHub username
-  import_full_config: false
 
 external_components:
   - source:

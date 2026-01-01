@@ -85,27 +85,50 @@ The RJ45 sockets on the bottom of the Rain Director are interchangable and both 
 
 Once your ESP32 is wired up and powered, you can install the firmware.
 
-### Option 1: ESPHome Dashboard (Recommended)
+### Installation Steps
 
-1. Click the button below to install directly to your ESP32:
+1. In the ESPHome Dashboard, click **"+ NEW DEVICE"**
+2. Click **"CONTINUE"** and give it a name (e.g., "Rain Director")
+3. Select your ESP32 board type (e.g., "ESP32")
+4. Click **"SKIP"** on the next screen
+5. Click **"EDIT"** on the newly created device
+6. Replace the entire contents with this configuration:
 
-   [![Open your Home Assistant instance and show the add ESPHome device dialog.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=esphome)
+```yaml
+substitutions:
+  name: "rain-director"
+  friendly_name: "Rain Director"
+  tank_capacity: "80.0"  # Change to your tank capacity in liters
 
-2. Copy this import URL:
-   ```
-   github://pturner1989/esphome-rain-director/rain-director.yaml@main
-   ```
+packages:
+  remote_package:
+    url: https://github.com/pturner1989/esphome-rain-director
+    ref: main
+    files: [rain-director.yaml]
+    refresh: 1d
 
-3. Paste the URL in the ESPHome dashboard import dialog
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+```
 
-### Option 2: Manual Installation
+7. Adjust the `tank_capacity` if needed (default is 80 liters)
+8. Click **"SAVE"** and then **"INSTALL"**
+9. Choose your installation method (USB, Wireless, etc.)
+
+**How it works**: This minimal config imports the full Rain Director configuration from GitHub using ESPHome's `packages` feature. Updates are checked daily, so you'll automatically get improvements to the component.
+
+### Alternative: Local Installation
+
+If you want to customize the configuration or work offline:
 
 1. Clone this repository:
    ```bash
    git clone https://github.com/pturner1989/esphome-rain-director.git
    ```
-2. Adjust the `tank_capacity` substitution to match your tank size (in liters)
-3. Compile and upload using ESPHome
+2. Copy the `rain-director.yaml` and `components/` folder to your ESPHome config directory
+3. Adjust the configuration as needed
+4. Compile and upload using ESPHome
 
 ## Configuration
 
