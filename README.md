@@ -37,16 +37,16 @@ The Rain Director has a spare RJ45 socket on the bottom of the controller that p
 
 ### Rain Director RJ45 Pinout
 
-When looking at the RJ45 socket on the bottom of the Rain Director, the pins are numbered 1-8 from left to right:
+The RJ45 sockets on the bottom of the Rain Director are interchangable and both pinned as follows:
 
-- **Pin 1**: RS-485 A (Data+)
-- **Pin 2**: RS-485 B (Data-)
-- **Pin 3**: Unknown (1.3V)
-- **Pin 4**: GND
-- **Pin 5**: GND
-- **Pin 6**: Unknown (1.4V)
-- **Pin 7**: +12V
-- **Pin 8**: +12V
+- **Pin 1 (Orange/White)**: RS-485 A (Data+)
+- **Pin 2 (Orange)**: RS-485 B (Data-)
+- **Pin 3 (Green/White)**: Unknown (1.3V)
+- **Pin 4 (Blue)**: GND
+- **Pin 5 (Blue/White)**: GND
+- **Pin 6 (Green)**: Unknown (1.4V)
+- **Pin 7 (Brown/White)**: +12V
+- **Pin 8 (Brown)**: +12V
 
 ### Wiring Instructions
 
@@ -54,14 +54,9 @@ When looking at the RJ45 socket on the bottom of the Rain Director, the pins are
 
 1. Connect **RJ45 Pin 7 or 8** (+12V) to the **Buck Converter IN+**
 2. Connect **RJ45 Pin 4 or 5** (GND) to the **Buck Converter IN-**
-3. Set the buck converter output to **5V** (not 3.3V)
+3. Set the buck converter output to **5V**
 4. Connect **Buck Converter OUT+** to **ESP32 VIN** pin
 5. Connect **Buck Converter OUT-** to **ESP32 GND** pin
-
-⚠️ **Important**:
-- Set buck converter to **5V** output, not 3.3V
-- Connect to ESP32 **VIN** pin, not 3V3 (the 3V3 pin is an output)
-- The ESP32's onboard regulator converts 5V to 3.3V internally
 
 #### Step 2: RS-485 Communication (Rain Director to ESP32)
 
@@ -74,17 +69,17 @@ When looking at the RJ45 socket on the bottom of the Rain Director, the pins are
 7. Connect **MAX485 RXD** to **ESP32 TX2** (GPIO17)
 
 **Notes**:
-- The MAX485 is powered from the ESP32's 3V3 output pin (this is fine as it draws minimal current)
+- The MAX485 is powered from the ESP32's 3V3 output pin (it draws minimal current)
 - The MAX485 module should be an auto-direction type (no DE/RE control needed)
 - If data is garbled, try swapping the A and B connections
 
 ### Connection Summary
 
-**Power Chain**: Rain Director 12V → Buck Converter (12V→5V) → ESP32 VIN
+**Power**: Rain Director 12V → Buck Converter (12V→5V) → ESP32 VIN
 
-**Data Chain**: Rain Director RS-485 → MAX485 (RS-485→TTL) → ESP32 UART2 (GPIO16/17)
+**Data**: Rain Director RS-485 → MAX485 (RS-485→TTL) → ESP32 UART2 (GPIO16/17)
 
-**Baud Rate**: 9600 (configured in the YAML)
+**Baud Rate**: 9600 (pre-configured in the YAML)
 
 ## Software Installation
 
@@ -120,19 +115,19 @@ Edit the substitution in the YAML file to match your tank size:
 
 ```yaml
 substitutions:
-  tank_capacity: "80.0"  # Change to your tank capacity in liters
+  tank_capacity: "100.0"  # Change to your header (loft) tank capacity in litres, 100L is the standard supplied "smart header tank"
 ```
 
 ### Custom Component
 
-This project uses a custom `rain_director` component located in the `components/` directory. Make sure this directory is included when deploying.
+This project uses a custom `rain_director` component located in the `components/` directory. Make sure this directory is included in the esphome directory when deploying.
 
 ## Communication Protocol
 
 The Rain Director communicates via UART (9600 baud) sending periodic status updates. The custom component parses these messages to extract:
 
-- **Mode codes** - Operational modes like Normal, Holiday, and Refresh
-- **State codes** - Controller states like Idle, Filling, and Draining
+- **Mode** - Operational modes like Normal, Holiday, and Refresh
+- **State** - Controller states like Idle, Filling, and Draining
 - **Tank level** - Water level as a percentage
 - **Water source** - Whether the system is using rainwater or mains
 
@@ -177,7 +172,7 @@ The display panel (device 10) sends mode codes that have been reverse-engineered
 
 The mode and state code mappings were determined by monitoring the serial output and correlating with observed behavior. Not all possible codes have been identified. If you discover additional codes, please contribute via:
 
-- Opening an issue with the code number and observed behavior
+- Opening an issue with the full hex code or mode+status codes (available as diagnostic sensors) and observed behavior
 - Submitting a PR to add new code mappings to the component
 
 ## Sensors
