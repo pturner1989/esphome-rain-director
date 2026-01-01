@@ -1,0 +1,192 @@
+substitutions:
+  name: "rain-director"
+  friendly_name: "Rain Director"
+  tank_capacity: "100.0"  # Tank capacity in liters
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  project:
+    name: "pturner1989.rain-director"  # Update with your GitHub username
+    version: "1.0.0"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ap:
+    ssid: "${friendly_name} Fallback"
+
+captive_portal:
+
+improv_serial:
+
+dashboard_import:
+  package_import_url: github://yourusername/esphome-rain-director/rain-director.yaml@main  # Update with your GitHub username
+  import_full_config: false
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+uart:
+  id: uart_bus
+  rx_pin: GPIO16
+  tx_pin: GPIO17
+  baud_rate: 9600
+
+rain_director:
+  uart_id: uart_bus
+  
+  tank_level:
+    name: "Tank Level"
+    id: tank_level   
+
+  mode_code:
+    name: "Mode Code"
+    entity_category: diagnostic
+    
+  state_code:
+    name: "State Code"
+    entity_category: diagnostic
+    
+  mode:
+    name: "Mode"
+    
+  status:
+    name: "Status"
+    id: tank_status
+    
+  source:
+    name: "Source"
+    id: water_source
+
+# Global variables for consumption tracking
+globals:
+  - id: rainwater_total
+    type: float
+    restore_value: true
+    initial_value: '0.0'
+    
+  - id: mains_total
+    type: float
+    restore_value: true
+    initial_value: '0.0'
+    
+  - id: last_level
+    type: float
+    restore_value: false
+    initial_value: '-1.0'
+
+# Track consumption based on level changes while filling
+interval:
+  - interval: 10s
+    then:
+      - lambda: |-
+          float current_level = id(tank_level).state;
+          if (isnan(current_level)) return;
+          
+          float prev_level = id(last_level);
+          
+          if (prev_level >= 0 && current_level > prev_level) {
+            // Tank is filling - calculate liters added
+            float liters_added = (current_level - prev_level) / 100.0 * ${tank_capacity};
+            
+            // Check source and add to appropriate counter
+            std::string source = id(water_source).state;
+            if (source == "Rainwater") {
+              id(rainwater_total) += liters_added;
+              ESP_LOGI("consumption", "Added %.1f L rainwater (total: %.1f L)", liters_added, id(rainwater_total));
+            } else if (source == "Mains") {
+              id(mains_total) += liters_added;
+              ESP_LOGI("consumption", "Added %.1f L mains (total: %.1f L)", liters_added, id(mains_total));
+            }
+          }
+          
+          id(last_level) = current_level;
+
+sensor:
+    # Tank volume in liters (100L tank)
+  - platform: template
+    name: "Tank Volume"
+    id: tank_volume
+    unit_of_measurement: "L"
+    accuracy_decimals: 0
+    icon: "mdi:water"
+    state_class: measurement
+    device_class: water
+    update_interval: 30s
+    lambda: |-
+      float level_pct = id(tank_level).state;
+      if (isnan(level_pct)) return NAN;
+      return (level_pct / 100.0) * ${tank_capacity};
+      
+  # Rainwater consumption total
+  - platform: template
+    name: "Rainwater Used"
+    id: rainwater_used
+    unit_of_measurement: "L"
+    accuracy_decimals: 0
+    icon: "mdi:water-check"
+    state_class: total_increasing
+    device_class: water
+    update_interval: 60s
+    lambda: |-
+      return id(rainwater_total);
+
+  # Mains water consumption total
+  - platform: template
+    name: "Mains Used"
+    id: mains_used
+    unit_of_measurement: "L"
+    accuracy_decimals: 0
+    icon: "mdi:water-pump"
+    state_class: total_increasing
+    device_class: water
+    update_interval: 60s
+    lambda: |-
+      return id(mains_total);
+    
+  - platform: uptime
+    name: "Uptime"
+    entity_category: diagnostic
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config
+    
+  - platform: template
+    name: "Reset Consumption Counters"
+    icon: "mdi:counter"
+    entity_category: config
+    on_press:
+      then:
+        - globals.set:
+            id: rainwater_total
+            value: '0.0'
+        - globals.set:
+            id: mains_total
+            value: '0.0'
+        - logger.log: "Consumption counters reset"
