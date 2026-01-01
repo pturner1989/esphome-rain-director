@@ -73,6 +73,45 @@ The Rain Director communicates via UART (9600 baud) sending periodic status upda
 - **Tank level** - Water level as a percentage
 - **Water source** - Whether the system is using rainwater or mains
 
+### Message Format
+
+The Rain Director sends hexadecimal codes in the format:
+
+```
+<DDCCPPPPPPCC
+```
+
+Where:
+- `<` - Start delimiter
+- `DD` - Device ID (2-digit hex)
+  - `10` = Display panel
+  - `20` = Level sensor
+  - `30`, `40` = Other devices (purpose unknown)
+- `CC` - Command/message type (2-digit hex)
+  - `53` = Status/data message
+  - `71` = Version query
+  - `10` = Heartbeat
+  - `33` = Unknown
+- `PPPPPP` - Payload (variable length hex data)
+  - For device 10 (display): First 2 bytes are the mode code
+  - For device 20 (level): First 2 bytes are the tank level percentage (0-100)
+- `CC` - Checksum (2-digit hex)
+
+Example messages:
+- `<1053000080XX` - Display panel showing mode code 0x00 (Filling)
+- `<20535080XX` - Level sensor reporting 50% full
+
+### Known Mode Codes
+
+The display panel (device 10) sends mode codes that have been reverse-engineered:
+
+- `0x00` = Filling (rainwater or refresh fill)
+- `0x01` = Normal mode, idle (rainwater)
+- `0x04` = Normal mode, idle (mains selected)
+- `0x08` = Holiday mode, idle
+- `0x0C` = Holiday mode, filling from mains
+- `0x10` = Refresh mode, draining
+
 The mode and state code mappings were determined by monitoring the serial output and correlating with observed behavior. Not all possible codes have been identified. If you discover additional codes, please contribute via:
 
 - Opening an issue with the code number and observed behavior
