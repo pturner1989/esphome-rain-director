@@ -31,17 +31,19 @@ Monitor and track water usage from a Rain Director rainwater tank system.
 
 2. Copy this import URL:
    ```
-   github://yourusername/esphome-rain-director/rain-director.yaml@main
+   github://pturner1989/esphome-rain-director/rain-director.yaml@main
    ```
 
 3. Paste the URL in the ESPHome dashboard import dialog
 
 ### Option 2: Manual Installation
 
-1. Clone this repository or download the files
-2. Update the `rain-director.yaml` file with your GitHub username in the project name and dashboard_import URL
-3. Adjust the `tank_capacity` substitution to match your tank size (in liters)
-4. Compile and upload using ESPHome
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/pturner1989/esphome-rain-director.git
+   ```
+2. Adjust the `tank_capacity` substitution to match your tank size (in liters)
+3. Compile and upload using ESPHome
 
 ## Configuration
 
