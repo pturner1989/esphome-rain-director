@@ -85,7 +85,43 @@ The RJ45 sockets on the bottom of the Rain Director are interchangable and both 
 
 Once your ESP32 is wired up and powered, you can install the firmware.
 
-### Installation Steps
+### Option 1: Quick Install via ESPHome Web (Easiest)
+
+This method works directly in your web browser without needing Home Assistant:
+
+1. Connect your ESP32 to your computer via USB
+2. Click this button to open ESPHome Web with the configuration pre-loaded:
+
+   <a href="https://web.esphome.io/?dashboard_install" target="_blank">
+     <img src="https://img.shields.io/badge/Install%20with-ESPHome%20Web-blue?logo=esphome" alt="Install with ESPHome Web">
+   </a>
+
+3. Click **"Connect"** and select your ESP32's serial port
+4. Click **"Install"** and choose **"Prepare for first use"**
+5. When prompted, paste this configuration:
+
+```yaml
+substitutions:
+  name: "rain-director"
+  friendly_name: "Rain Director"
+  tank_capacity: "80.0"
+
+packages:
+  remote_package:
+    url: https://github.com/pturner1989/esphome-rain-director
+    ref: main
+    files: [rain-director.yaml]
+    refresh: 1d
+
+wifi:
+  ssid: "YOUR_WIFI_SSID"
+  password: "YOUR_WIFI_PASSWORD"
+```
+
+6. Replace `YOUR_WIFI_SSID` and `YOUR_WIFI_PASSWORD` with your actual WiFi credentials
+7. Click **"Install"** and wait for the firmware to compile and upload
+
+### Option 2: ESPHome Dashboard (For Home Assistant Users)
 
 1. In the ESPHome Dashboard, click **"+ NEW DEVICE"**
 2. Click **"CONTINUE"** and give it a name (e.g., "Rain Director")
@@ -118,7 +154,7 @@ wifi:
 
 **How it works**: This minimal config imports the full Rain Director configuration from GitHub using ESPHome's `packages` feature. Updates are checked daily, so you'll automatically get improvements to the component.
 
-### Alternative: Local Installation
+### Option 3: Local Installation
 
 If you want to customize the configuration or work offline:
 
