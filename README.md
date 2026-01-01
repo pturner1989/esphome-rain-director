@@ -6,6 +6,8 @@ This project interfaces with the Rain Director controller via UART communication
 
 This project is not affiliated with the manufacturer in any way and takes no responsibility for any issues caused by connecting an ESP32 to the Rain Director.
 
+![Home Assistant Dashboard Example](docs/image.png)
+
 ## Features
 
 - Real-time header tank level monitoring
