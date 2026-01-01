@@ -1,10 +1,14 @@
 # ESPHome Rain Director
 
-Monitor and track water usage from a Rain Director rainwater tank system.
+Monitor and track water usage from a Rain Director rainwater tank system. The Rain Director is provided by a company called Rainwater Harvesting in the UK.
+
+This project interfaces with the Rain Director controller via UART communication to decode operational modes and status codes. The protocol was reverse-engineered by monitoring the serial output, and not all codes have been identified yet. Contributions via PRs or issues are welcome to expand the code mappings.
+
+This project is not affiliated with the manufacturer in any way and takes no responsibility for any issues caused by connecting an ESP32 to the Rain Director.
 
 ## Features
 
-- Real-time tank level monitoring
+- Real-time header tank level monitoring
 - Track rainwater vs mains water consumption
 - Tank volume calculation
 - Water source tracking
@@ -60,14 +64,28 @@ substitutions:
 
 This project uses a custom `rain_director` component located in the `components/` directory. Make sure this directory is included when deploying.
 
+## Communication Protocol
+
+The Rain Director communicates via UART (9600 baud) sending periodic status updates. The custom component parses these messages to extract:
+
+- **Mode codes** - Operational modes like Normal, Holiday, and Refresh
+- **State codes** - Controller states like Idle, Filling, and Draining
+- **Tank level** - Water level as a percentage
+- **Water source** - Whether the system is using rainwater or mains
+
+The mode and state code mappings were determined by monitoring the serial output and correlating with observed behavior. Not all possible codes have been identified. If you discover additional codes, please contribute via:
+
+- Opening an issue with the code number and observed behavior
+- Submitting a PR to add new code mappings to the component
+
 ## Sensors
 
 - **Tank Level** - Tank fill percentage (0-100%)
 - **Tank Volume** - Current water volume in liters
 - **Rainwater Used** - Total rainwater consumption
 - **Mains Used** - Total mains water consumption
-- **Mode** - Current operating mode
-- **Status** - Tank status
+- **Mode** - Current operating mode (Normal, Holiday, Refresh)
+- **Status** - Controller status (Idle, Filling, Draining)
 - **Source** - Current water source (Rainwater/Mains)
 
 ## Controls
@@ -77,7 +95,7 @@ This project uses a custom `rain_director` component located in the `components/
 
 ## License
 
-This project is open source. Feel free to modify and share.
+This project is MIT-license open source.
 
 ## Contributing
 
