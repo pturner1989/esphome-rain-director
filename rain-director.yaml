@@ -11,6 +11,16 @@ esphome:
     name: "pturner1989.rain-director"  # Update with your GitHub username
     version: "1.0.0"
 
+packages:
+  remote_package:
+    url: https://github.com/pturner1989/esphome-rain-director
+    ref: main
+    refresh: 1d
+
+dashboard_import:
+  package_import_url: github://pturner1989/esphome-rain-director/rain-director.yaml@main
+  import_full_config: false # or true
+
 esp32:
   board: esp32dev
   framework:
