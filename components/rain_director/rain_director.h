@@ -39,6 +39,8 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   int last_top_{-1};
   int last_mode_{-1};
   int last_state_{-1};
+  uint8_t last_status_byte_{0x00};
+  bool status_byte_received_{false};
   std::string last_status_;
   std::string last_source_;
   std::string last_mode_str_;
