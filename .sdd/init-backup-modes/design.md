@@ -780,7 +780,7 @@ No blockers identified. Implementation can proceed immediately.
 **Goal:** Implement two-tier composite key matching algorithm while maintaining backward compatibility.
 
 - Task 2.1: Implement composite key lookup algorithm in process_hex_code_()
-  - Status: Backlog
+  - Status: Complete
   - Modify lookup loop to check match_any_status flag
   - If match_any_status=false, compare both mode byte AND last_status_byte_
   - If match_any_status=true, compare mode byte only (existing behavior)
@@ -789,7 +789,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: TEST-PROCESS-HEX-COMPOSITE-MATCH, TEST-PROCESS-HEX-AGNOSTIC-MATCH, TEST-PROCESS-HEX-PRIORITY, TEST-PROCESS-HEX-REFRESH
 
 - Task 2.2: Add 5 new mode/status mappings to MODE_MAPPINGS
-  - Status: Backlog
+  - Status: Complete
   - Add entries for 0xC0/0x0F, 0x40/0x0F, 0x40/0x09, 0x02/0x01, 0x00/0x01 with match_any_status=false
   - Place new entries at beginning of array (status-specific matches checked first)
   - Add inline comments explaining each new Init and Backup mode
@@ -797,7 +797,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: TEST-MODE-MAPPINGS-COMPOSITE, TEST-MODE-MAPPINGS-ORDER
 
 - Task 2.3: Update unknown code logging to include status byte and handle edge cases
-  - Status: Backlog
+  - Status: Complete
   - Modify ESP_LOGW in process_hex_code_() to check status_byte_received_ flag
   - If status_byte_received_ is false, log: "Unknown mode 0x%02X (status not yet received)"
   - If status_byte_received_ is true, log: "Unknown mode/status combination: mode=0x%02X status=0x%02X"
