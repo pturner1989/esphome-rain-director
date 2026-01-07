@@ -6,6 +6,34 @@ namespace rain_director {
 
 static const char *const TAG = "rain_director";
 
+// =======================================================
+// MODE CODE MAPPINGS - Add new discovered codes here
+// =======================================================
+// This structure maps Rain Director hex mode codes to human-readable strings.
+// Format: { hex_code, mode_string, status_string, source_string, is_refresh_indicator }
+//
+// Fields:
+//   - code: The hex byte sent by the Rain Director display panel (device 10)
+//   - mode: The operational mode (Normal, Holiday, Refresh)
+//   - status: The controller status (Idle, Filling, Draining)
+//   - source: The water source (Rainwater, Mains)
+//   - is_refresh: True if this code indicates a refresh cycle (used for state tracking)
+//
+// Example: To add a new code 0x14 for "Service Mode, Idle, Mains", add:
+//   { 0x14, "Service", "Idle", "Mains", false },
+//
+// See INITIAL-RELEASE-REQ-FN-04: Maintainable Code Mappings
+static const struct {
+  uint8_t code;
+  const char* mode;
+  const char* status;
+  const char* source;
+  bool is_refresh;
+} MODE_MAPPINGS[] = {
+  // Placeholder - will be populated in Task 2.2
+};
+static const size_t MODE_MAPPINGS_COUNT = sizeof(MODE_MAPPINGS) / sizeof(MODE_MAPPINGS[0]);
+
 void RainDirectorComponent::setup() {
   ESP_LOGI(TAG, "Rain Director Tank Sensor initialized");
 }
