@@ -53,8 +53,21 @@ static const struct {
   bool is_refresh;
   bool match_any_status;
 } MODE_MAPPINGS[] = {
+  // STATUS-SPECIFIC MAPPINGS (require exact mode + status match)
+  // These entries are checked first for priority matching
+  // INIT-BACKUP-MODES-REQ-FN-02: New Initialization Mode Mappings
+  { 0xC0, 0x0F, "Init",    "Draining", "Rainwater", false, false }, // Initialization: draining header tank on Rain Director boot
+  { 0x40, 0x0F, "Init",    "Filling",  "Rainwater", false, false }, // Initialization: refilling header tank from rainwater
+  { 0x40, 0x09, "Init",    "Filling",  "Mains",     false, false }, // Initialization: refilling header tank from mains
+  // NOTE: Mode 0x40 intentionally has NO status-agnostic fallback. Other status bytes will map to "Unknown".
+
+  // INIT-BACKUP-MODES-REQ-FN-03: New Mains Backup Mode Mappings
+  { 0x02, 0x01, "Backup",  "Idle",     "Mains",     false, false }, // Backup mode: rainwater tank empty, idle on mains only
+  { 0x00, 0x01, "Backup",  "Filling",  "Mains",     false, false }, // Backup mode: rainwater tank empty, filling from mains
+
   // STATUS-AGNOSTIC MAPPINGS (match mode byte only, status byte ignored)
-  // These come first temporarily - will be reorganized in Phase 2 when status-specific entries are added
+  // These entries serve as fallback when no status-specific match is found
+  // INIT-BACKUP-MODES-REQ-FN-06: Existing Mode Compatibility
   { 0x00, 0x00, "Normal",  "Filling",  "Rainwater", false, true },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
   { 0x01, 0x00, "Normal",  "Idle",     "Rainwater", false, true },  // Normal mode, idle on rainwater
   { 0x04, 0x00, "Normal",  "Idle",     "Mains",     false, true },  // Normal mode, idle on mains selected
