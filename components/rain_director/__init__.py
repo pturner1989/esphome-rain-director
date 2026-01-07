@@ -13,7 +13,6 @@ AUTO_LOAD = ["sensor", "text_sensor"]
 
 CONF_TANK_LEVEL = "tank_level"
 CONF_MODE_CODE = "mode_code"
-CONF_STATE_CODE = "state_code"
 CONF_MODE_TEXT = "mode"
 CONF_STATUS_TEXT = "status"
 CONF_SOURCE_TEXT = "source"
@@ -34,10 +33,6 @@ CONFIG_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_MODE_CODE): text_sensor.text_sensor_schema(
             icon="mdi:cog",
-        ),
-        cv.Optional(CONF_STATE_CODE): sensor.sensor_schema(
-            icon="mdi:state-machine",
-            accuracy_decimals=0,
         ),
         cv.Optional(CONF_MODE_TEXT): text_sensor.text_sensor_schema(
             icon="mdi:water-pump",
@@ -64,10 +59,6 @@ async def to_code(config):
     if CONF_MODE_CODE in config:
         sens = await text_sensor.new_text_sensor(config[CONF_MODE_CODE])
         cg.add(var.set_mode_code_sensor(sens))
-
-    if CONF_STATE_CODE in config:
-        sens = await sensor.new_sensor(config[CONF_STATE_CODE])
-        cg.add(var.set_state_code_sensor(sens))
 
     if CONF_MODE_TEXT in config:
         sens = await text_sensor.new_text_sensor(config[CONF_MODE_TEXT])
