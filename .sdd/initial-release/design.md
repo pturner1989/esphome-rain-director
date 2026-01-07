@@ -1057,7 +1057,9 @@ Estimate based on straightforward refactoring and configuration changes. No unkn
 
 **Goal:** Update README to provide complete self-service documentation with emphasis on simplified installation.
 
-**Task 3.1: Update Installation Instructions**
+**Status:** ✅ COMPLETE
+
+**Task 3.1: Update Installation Instructions** ✅ COMPLETE
 - Retitle "Option 3" to "Advanced: Local Installation"
 - Add note that local installation is for customization/offline work
 - No content changes, only emphasis and ordering
@@ -1065,7 +1067,7 @@ Estimate based on straightforward refactoring and configuration changes. No unkn
 - Estimated Time: 15 minutes
 - Completion Criteria: Installation section clearly emphasizes packages import as primary method
 
-**Task 3.2: Add Hardware Warnings**
+**Task 3.2: Add Hardware Warnings** ✅ COMPLETE
 - Add prominent warning about MAX485 auto-direction requirement
 - Add to hardware requirements section or immediately after table
 - Make visually distinct (bold, highlighted, or callout box in markdown)
@@ -1073,7 +1075,7 @@ Estimate based on straightforward refactoring and configuration changes. No unkn
 - Estimated Time: 10 minutes
 - Completion Criteria: Warning clearly visible in hardware section
 
-**Task 3.3: Create Troubleshooting Section**
+**Task 3.3: Create Troubleshooting Section** ✅ COMPLETE
 - Add new section after Configuration, before Communication Protocol
 - Include subsections: No Data, Garbled Data, WiFi Issues, Sensors Not Appearing
 - Provide clear action steps for each issue
@@ -1084,7 +1086,7 @@ Estimate based on straightforward refactoring and configuration changes. No unkn
 - Estimated Time: 45 minutes
 - Completion Criteria: Comprehensive troubleshooting section covering common issues, no contradictory advice
 
-**Task 3.4: Update File References and Verify Code Examples**
+**Task 3.4: Update File References and Verify Code Examples** ✅ COMPLETE
 - Search README for "rain-director-install.yaml"
 - Update all references to "install.yaml"
 - Verify no broken links or incorrect filenames
@@ -1097,7 +1099,7 @@ Estimate based on straightforward refactoring and configuration changes. No unkn
 - Estimated Time: 20 minutes
 - Completion Criteria: All filename references correct, all code examples verified accurate
 
-**Task 3.5: Documentation Review and Polish**
+**Task 3.5: Documentation Review and Polish** ✅ COMPLETE
 - Read through entire README as new user
 - Check for clarity, completeness, and accuracy
 - Verify all code examples match actual configuration
