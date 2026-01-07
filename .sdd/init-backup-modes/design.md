@@ -861,7 +861,7 @@ No blockers identified. Implementation can proceed immediately.
 **Goal:** Update documentation to reflect composite key system and breaking changes.
 
 - Task 5.1: Update README.md with new mode codes, composite key explanation, and state diagram
-  - Status: Backlog
+  - Status: Complete
   - Add 5 new mode codes to "Known Mode Codes" section with status byte requirements
   - Update "Communication Protocol" section to explain composite key matching priority
   - Document that status byte is used internally but not exposed as sensor
@@ -871,7 +871,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: Manual review of documentation clarity and accuracy
 
 - Task 5.2: Update MODE_MAPPINGS header comments with examples
-  - Status: Backlog
+  - Status: Complete
   - Expand existing header comment to explain composite key format
   - Add examples showing when to use match_any_status=true vs false
   - Document matching priority (status-specific first, then status-agnostic)
