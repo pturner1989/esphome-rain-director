@@ -220,7 +220,14 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
 
     if (mapping == nullptr) {
       // Unknown code - log warning and publish "Unknown" for all text sensors
-      ESP_LOGW(TAG, "Unknown mode code: 0x%02X", mode_byte);
+      // INIT-BACKUP-MODES-REQ-NFN-04: Unknown State Handling with edge case detection
+      if (!this->status_byte_received_) {
+        // Status byte not yet received (e.g., ESP32 boot before first JSON message)
+        ESP_LOGW(TAG, "Unknown mode 0x%02X (status not yet received)", mode_byte);
+      } else {
+        // Status byte received but combination is unknown
+        ESP_LOGW(TAG, "Unknown mode/status combination: mode=0x%02X status=0x%02X", mode_byte, this->last_status_byte_);
+      }
       mode_str = "Unknown";
       status_str = "Unknown";
       source_str = "Unknown";
