@@ -31,6 +31,8 @@ This project is not affiliated with the manufacturer in any way and takes no res
 
 **Total: ~£15-30**
 
+**IMPORTANT:** The MAX485 module MUST be an "auto-direction" type that automatically switches between transmit and receive modes. Modules requiring DE/RE control pins are not supported by this configuration.
+
 ## Hardware Setup
 
 The Rain Director has a spare RJ45 socket on the bottom of the controller that provides RS-485 communication and power.
