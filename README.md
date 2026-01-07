@@ -154,7 +154,9 @@ wifi:
 
 **How it works**: This minimal config imports the full Rain Director configuration from GitHub using ESPHome's `packages` feature. Updates are checked daily, so you'll automatically get improvements to the component.
 
-### Option 3: Local Installation
+### Advanced: Local Installation
+
+**Note:** Most users should use Options 1 or 2 above. Local installation is only needed for advanced customization or offline development.
 
 If you want to customize the configuration or work offline:
 
