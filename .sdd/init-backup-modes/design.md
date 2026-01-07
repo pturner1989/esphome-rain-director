@@ -816,7 +816,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: TEST-HEADER-MODE-CODE-TYPE, TEST-HEADER-SETTER, TEST-DUMP-CONFIG-MODE-CODE
 
 - Task 3.2: Update process_hex_code_() to publish hex string format with safe buffer
-  - Status: Backlog
+  - Status: Complete
   - Declare local char buffer[5] for hex string storage (holds "0xXX\0")
   - Use snprintf(buffer, sizeof(buffer), "0x%02X", mode_byte) for safe formatting
   - Call mode_code_sensor_->publish_state(buffer)
