@@ -15,7 +15,7 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   void dump_config() override;
 
   void set_tank_level_sensor(sensor::Sensor *sensor) { tank_level_sensor_ = sensor; }
-  void set_mode_code_sensor(sensor::Sensor *sensor) { mode_code_sensor_ = sensor; }
+  void set_mode_code_sensor(text_sensor::TextSensor *sensor) { mode_code_sensor_ = sensor; }
   void set_state_code_sensor(sensor::Sensor *sensor) { state_code_sensor_ = sensor; }
   void set_mode_text_sensor(text_sensor::TextSensor *sensor) { mode_text_sensor_ = sensor; }
   void set_status_text_sensor(text_sensor::TextSensor *sensor) { status_text_sensor_ = sensor; }
@@ -29,7 +29,7 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   int hex_to_int_(const std::string &hex);
 
   sensor::Sensor *tank_level_sensor_{nullptr};
-  sensor::Sensor *mode_code_sensor_{nullptr};
+  text_sensor::TextSensor *mode_code_sensor_{nullptr};
   sensor::Sensor *state_code_sensor_{nullptr};
   text_sensor::TextSensor *mode_text_sensor_{nullptr};
   text_sensor::TextSensor *status_text_sensor_{nullptr};
