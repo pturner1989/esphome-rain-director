@@ -185,6 +185,42 @@ substitutions:
 
 This project uses a custom `rain_director` component located in the `components/` directory. Make sure this directory is included in the esphome directory when deploying.
 
+## Troubleshooting
+
+### No Data from Rain Director
+
+If sensors are not updating or showing no data:
+
+- Try restarting the Rain Director controller (power cycle it)
+- Verify UART connections (GPIO16 to MAX485 TXD, GPIO17 to MAX485 RXD)
+- Check ESPHome logs for UART data (should see hex codes like `<2053...`)
+- Ensure MAX485 module is properly powered (3.3V from ESP32)
+
+### Garbled or Incorrect Data
+
+If sensor data appears incorrect or garbled:
+
+- Swap the RS-485 A and B wire connections on the MAX485 module
+- Verify baud rate is 9600 (configured in rain-director.yaml)
+- Ensure MAX485 module is auto-direction type
+
+### WiFi Connection Issues
+
+If the ESP32 is not connecting to WiFi:
+
+- Check WiFi credentials in your YAML configuration
+- If credentials are incorrect, ESP32 will create a fallback WiFi access point named "[Device Name] Fallback"
+- Connect to the fallback AP and use the captive portal to configure WiFi
+
+### Sensors Not Appearing in Home Assistant
+
+If sensors don't appear in Home Assistant after installation:
+
+- Verify ESP32 is connected to WiFi (check ESPHome logs)
+- Check that Home Assistant API is enabled (should be auto-discovered)
+- Wait 30-60 seconds for sensors to appear after first boot
+- Check sensor names match your device name substitution
+
 ## Communication Protocol
 
 The Rain Director communicates via UART (9600 baud) sending periodic status updates. The custom component parses these messages to extract:
