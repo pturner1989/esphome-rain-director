@@ -834,14 +834,14 @@ No blockers identified. Implementation can proceed immediately.
 **Goal:** Remove state_code sensor entirely as it's no longer needed.
 
 - Task 4.1: Remove state_code_sensor_ from C++ class
-  - Status: Backlog
+  - Status: Complete
   - In rain_director.h: Remove state_code_sensor_ member variable
   - Remove set_state_code_sensor() setter method
   - Remove state_code_sensor_ from dump_config() LOG_SENSOR call
   - Tests: TEST-HEADER-NO-STATE-CODE, TEST-DUMP-CONFIG-NO-STATE
 
 - Task 4.2: Remove state_code publishing from process_json_()
-  - Status: Backlog
+  - Status: Complete
   - Remove state_code_sensor_->publish_state() call
   - Remove ESP_LOGI log for state value
   - Keep last_top_ tank level processing (unchanged)
@@ -850,7 +850,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: TEST-PROCESS-JSON-NO-PUBLISH, TEST-PROCESS-JSON-LEVEL
 
 - Task 4.3: Remove state_code from Python configuration
-  - Status: Backlog
+  - Status: Complete
   - In __init__.py: Remove CONF_STATE_CODE constant definition
   - Remove CONF_STATE_CODE from CONFIG_SCHEMA
   - Remove state_code registration from to_code() function
