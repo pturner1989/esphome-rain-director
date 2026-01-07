@@ -251,11 +251,15 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
       source_str = mapping->source;
     }
 
-    // Publish mode code (raw byte for diagnostics)
+    // Publish mode code in hexadecimal format (0xXX) for diagnostics
+    // INIT-BACKUP-MODES-REQ-FN-04: Hexadecimal Mode Code Display
     if (mode_byte != this->last_mode_) {
       this->last_mode_ = mode_byte;
-      if (this->mode_code_sensor_ != nullptr)
-        this->mode_code_sensor_->publish_state(mode_byte);
+      if (this->mode_code_sensor_ != nullptr) {
+        char buffer[5];  // Holds "0xXX\0"
+        snprintf(buffer, sizeof(buffer), "0x%02X", mode_byte);
+        this->mode_code_sensor_->publish_state(buffer);
+      }
     }
 
     // Publish mode

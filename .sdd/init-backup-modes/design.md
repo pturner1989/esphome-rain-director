@@ -809,7 +809,7 @@ No blockers identified. Implementation can proceed immediately.
 **Goal:** Change mode_code from numeric sensor to text sensor displaying hex format.
 
 - Task 3.1: Change mode_code_sensor_ to TextSensor in C++ class
-  - Status: Backlog
+  - Status: Complete
   - In rain_director.h: Change mode_code_sensor_ from sensor::Sensor* to text_sensor::TextSensor*
   - Change set_mode_code_sensor() parameter type to text_sensor::TextSensor*
   - Update dump_config() to use LOG_TEXT_SENSOR instead of LOG_SENSOR
