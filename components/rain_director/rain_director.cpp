@@ -265,6 +265,9 @@ void RainDirectorComponent::process_json_(const std::string &json) {
   }
   if (state_val >= 0 && state_val != this->last_state_) {
     this->last_state_ = state_val;
+    // Store status byte for composite key lookup
+    this->last_status_byte_ = static_cast<uint8_t>(state_val);
+    this->status_byte_received_ = true;
     if (this->state_code_sensor_ != nullptr)
       this->state_code_sensor_->publish_state(state_val);
     ESP_LOGI(TAG, "State: %d", state_val);
