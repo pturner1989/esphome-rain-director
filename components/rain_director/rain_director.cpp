@@ -147,67 +147,59 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
   // =======================================================
   // DEVICE 10: DISPLAY PANEL
   // =======================================================
-  
+
   // Display commands: <1053[MODE_BYTE][SUB][CHECKSUM]
   if (hex.substr(0, 4) == "1053" && hex.length() >= 10) {
     std::string mode_hex = hex.substr(4, 2);
     int mode_byte = this->hex_to_int_(mode_hex);
-    
-    // Known mode codes:
-    // 0x00 = Filling (rainwater or refresh fill)
-    // 0x01 = Normal mode, idle (rainwater)
-    // 0x04 = Normal mode, idle (mains selected)
-    // 0x08 = Holiday mode, idle
-    // 0x0C = Holiday mode, filling from mains
-    // 0x10 = Refresh mode, draining
-    
-    // Track refresh cycle
-    if (mode_byte == 0x10) {
-      this->in_refresh_ = true;
-    } else if (mode_byte == 0x01 || mode_byte == 0x04 || mode_byte == 0x08) {
-      // Back to an idle state = refresh complete
-      this->in_refresh_ = false;
+
+    // Linear search through MODE_MAPPINGS array to find matching code
+    const auto* mapping = static_cast<decltype(MODE_MAPPINGS)*>(nullptr);
+    for (size_t i = 0; i < MODE_MAPPINGS_COUNT; i++) {
+      if (MODE_MAPPINGS[i].code == mode_byte) {
+        mapping = &MODE_MAPPINGS[i];
+        break;
+      }
     }
-    
-    // Determine MODE: Normal, Holiday, Refresh
+
+    // Determine mode, status, and source strings
     std::string mode_str;
-    if (mode_byte == 0x10 || (this->in_refresh_ && mode_byte == 0x00)) {
-      mode_str = "Refresh";
-    } else if (mode_byte == 0x08 || mode_byte == 0x0C) {
-      mode_str = "Holiday";
-    } else {
-      mode_str = "Normal";
-    }
-    
-    // Determine STATUS: Filling, Idle, Draining, Unknown
     std::string status_str;
-    if (mode_byte == 0x10) {
-      status_str = "Draining";
-    } else if (mode_byte == 0x00 || mode_byte == 0x0C) {
-      status_str = "Filling";
-    } else if (mode_byte == 0x01 || mode_byte == 0x04 || mode_byte == 0x08) {
-      status_str = "Idle";
-    } else {
-      status_str = "Unknown";
-    }
-    
-    // Determine SOURCE: Rainwater, Mains
     std::string source_str;
-    if (mode_byte == 0x04 || mode_byte == 0x08 || mode_byte == 0x0C) {
-      // Mains mode, Holiday idle, or Holiday filling
-      source_str = "Mains";
+
+    if (mapping == nullptr) {
+      // Unknown code - log warning and publish "Unknown" for all text sensors
+      ESP_LOGW(TAG, "Unknown mode code: 0x%02X", mode_byte);
+      mode_str = "Unknown";
+      status_str = "Unknown";
+      source_str = "Unknown";
     } else {
-      // Normal rain mode or Refresh (which uses rainwater)
-      source_str = "Rainwater";
+      // Track refresh cycle using is_refresh field
+      if (mapping->is_refresh) {
+        this->in_refresh_ = true;
+      } else if (mode_byte == 0x01 || mode_byte == 0x04 || mode_byte == 0x08) {
+        // Back to an idle state = refresh complete
+        this->in_refresh_ = false;
+      }
+
+      // Special case: mode 0x00 after 0x10 is a refresh fill (not normal fill)
+      if (this->in_refresh_ && mode_byte == 0x00) {
+        mode_str = "Refresh";
+      } else {
+        mode_str = mapping->mode;
+      }
+
+      status_str = mapping->status;
+      source_str = mapping->source;
     }
-    
+
     // Publish mode code (raw byte for diagnostics)
     if (mode_byte != this->last_mode_) {
       this->last_mode_ = mode_byte;
       if (this->mode_code_sensor_ != nullptr)
         this->mode_code_sensor_->publish_state(mode_byte);
     }
-    
+
     // Publish mode
     if (mode_str != this->last_mode_str_) {
       this->last_mode_str_ = mode_str;
@@ -215,7 +207,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
         this->mode_text_sensor_->publish_state(mode_str);
       ESP_LOGI(TAG, "Mode: %s (0x%02X)", mode_str.c_str(), mode_byte);
     }
-    
+
     // Publish status
     if (status_str != this->last_status_) {
       this->last_status_ = status_str;
@@ -223,7 +215,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
         this->status_text_sensor_->publish_state(status_str);
       ESP_LOGI(TAG, "Status: %s", status_str.c_str());
     }
-    
+
     // Publish source
     if (source_str != this->last_source_) {
       this->last_source_ = source_str;
@@ -231,7 +223,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
         this->source_text_sensor_->publish_state(source_str);
       ESP_LOGI(TAG, "Source: %s", source_str.c_str());
     }
-    
+
     return;
   }
 }
