@@ -221,14 +221,25 @@ If sensors don't appear in Home Assistant after installation:
 - Wait 30-60 seconds for sensors to appear after first boot
 - Check sensor names match your device name substitution
 
+### Mode Shows as "Unknown" During Initialization
+
+If the Mode sensor briefly shows "Unknown" when the Rain Director or ESP32 starts:
+
+- This is expected behavior during initialization while waiting for first messages to arrive
+- The state will self-correct within 1-2 seconds as UART messages arrive
+- Init modes (Init/Draining, Init/Filling) appear only during Rain Director boot-up and typically last 30-60 seconds
+- If "Unknown" persists beyond a few seconds, check UART connections and ESPHome logs for warnings about unrecognized mode/status combinations
+
 ## Communication Protocol
 
 The Rain Director communicates via UART (9600 baud) sending periodic status updates. The custom component parses these messages to extract:
 
-- **Mode** - Operational modes like Normal, Holiday, and Refresh
+- **Mode** - Operational modes like Normal, Holiday, Refresh, Init, and Backup
 - **State** - Controller states like Idle, Filling, and Draining
 - **Tank level** - Water level as a percentage
 - **Water source** - Whether the system is using rainwater or mains
+
+The component uses a **composite key matching system** that combines both the mode byte (from hex codes) and status byte (from JSON messages) to accurately determine the operational state. Some mode codes require specific status byte values for correct interpretation (status-specific mappings), while others work with any status value (status-agnostic fallback matching). The status byte is used internally for composite key matching but is not exposed as a separate sensor.
 
 ### Message Format
 
@@ -260,14 +271,67 @@ Example messages:
 
 ### Known Mode Codes
 
-The display panel (device 10) sends mode codes that have been reverse-engineered:
+The display panel (device 10) sends mode codes that have been reverse-engineered. The component uses a **composite key matching system** that combines both the mode byte (from hex codes) and status byte (from JSON messages) to accurately identify the Rain Director's operational state.
 
-- `0x00` = Filling (rainwater or refresh fill)
-- `0x01` = Normal mode, idle (rainwater)
-- `0x04` = Normal mode, idle (mains selected)
-- `0x08` = Holiday mode, idle
-- `0x0C` = Holiday mode, filling from mains
-- `0x10` = Refresh mode, draining
+#### Status-Specific Mode Codes
+
+These mode codes require a specific status byte value to be correctly interpreted:
+
+**Initialization Modes** (occur during Rain Director boot-up):
+- `0xC0` + Status `0x0F` = Init/Draining/Rainwater - Draining header tank on Rain Director startup
+- `0x40` + Status `0x0F` = Init/Filling/Rainwater - Refilling header tank from rainwater during startup
+- `0x40` + Status `0x09` = Init/Filling/Mains - Refilling header tank from mains during startup
+
+**Backup Modes** (occur when rainwater tank is empty):
+- `0x02` + Status `0x01` = Backup/Idle/Mains - Rainwater tank empty, idle on mains water only
+- `0x00` + Status `0x01` = Backup/Filling/Mains - Rainwater tank empty, filling from mains water
+
+#### Status-Agnostic Mode Codes
+
+These mode codes work with any status byte value (status-agnostic fallback matching):
+
+**Normal Operation:**
+- `0x00` = Normal/Filling/Rainwater - Filling from rainwater (or refresh fill - see refresh cycle below)
+- `0x01` = Normal/Idle/Rainwater - Idle on rainwater
+- `0x04` = Normal/Idle/Mains - Idle on mains water (manually selected)
+
+**Holiday Mode:**
+- `0x08` = Holiday/Idle/Mains - Holiday mode, idle
+- `0x0C` = Holiday/Filling/Mains - Holiday mode, filling from mains
+
+**Refresh Cycle:**
+- `0x10` = Refresh/Draining/Rainwater - Refresh cycle, draining tank
+
+#### Composite Key Matching Priority
+
+The component uses a two-tier matching system:
+
+1. **First priority:** Status-specific mappings (exact mode + status byte match)
+   - Example: Mode `0x00` with Status `0x01` → "Backup/Filling/Mains" (status-specific match)
+2. **Second priority:** Status-agnostic mappings (mode byte match, any status)
+   - Example: Mode `0x00` with Status `0x00` → "Normal/Filling/Rainwater" (fallback match)
+
+**Note:** Mode `0x40` intentionally has NO status-agnostic fallback. Any status byte other than `0x0F` or `0x09` with mode `0x40` will result in "Unknown" state, allowing detection of unexpected protocol variations.
+
+The status byte is used internally for composite key matching but is not exposed as a separate sensor - only the Mode, Status, and Source text sensors show the human-readable state information.
+
+#### Refresh Cycle State Tracking
+
+The refresh cycle is a special sequence where the Rain Director drains and refills the header tank to keep the water fresh. The component tracks this using an internal `in_refresh_` flag:
+
+```
+Normal Operation (0x01, 0x04, or 0x08)
+         ↓
+   Refresh Draining (0x10)  ← in_refresh_ = true
+         ↓
+   Refresh Filling (0x00)   ← in_refresh_ still true, Mode shown as "Refresh"
+         ↓
+   Normal Operation (0x01, 0x04, or 0x08)  ← in_refresh_ = false
+```
+
+When mode `0x10` (Refresh/Draining) is detected, the `in_refresh_` flag is set to `true`. Subsequent mode `0x00` (Filling) codes are then displayed as "Refresh/Filling" instead of "Normal/Filling". The refresh cycle completes when the system returns to an idle state (modes `0x01`, `0x04`, or `0x08`), at which point `in_refresh_` is reset to `false`.
+
+#### Contributing New Codes
 
 The mode and state code mappings were determined by monitoring the serial output and correlating with observed behavior. Not all possible codes have been identified. If you discover additional codes, please contribute via:
 
@@ -280,9 +344,18 @@ The mode and state code mappings were determined by monitoring the serial output
 - **Tank Volume** - Current water volume in liters
 - **Rainwater Used** - Total rainwater consumption
 - **Mains Used** - Total mains water consumption
-- **Mode** - Current operating mode (Normal, Holiday, Refresh)
+- **Mode** - Current operating mode (Normal, Holiday, Refresh, Init, Backup)
 - **Status** - Controller status (Idle, Filling, Draining)
 - **Source** - Current water source (Rainwater/Mains)
+- **Mode Code** - Raw mode byte in hexadecimal format (0xXX) for diagnostic purposes
+
+### Breaking Change in v1.1.0
+
+**Mode Code Sensor Type Changed:** The `mode_code` sensor changed from a numeric sensor to a text sensor displaying hexadecimal format (e.g., "0xC0" instead of "192").
+
+**User Impact:** The old numeric `mode_code` sensor will become unavailable in Home Assistant after upgrading. A new text sensor with the same name will appear showing hex values. If you have dashboards or automations referencing the old numeric sensor, you will need to update them to use the new text sensor.
+
+**Migration:** Update any dashboard cards or automations that reference `sensor.rain_director_mode_code` to use the new text sensor. Historical numeric data from the old sensor will remain in Home Assistant but will not continue to populate.
 
 ## Controls
 
