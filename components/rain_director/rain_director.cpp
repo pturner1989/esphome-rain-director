@@ -154,7 +154,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
     int mode_byte = this->hex_to_int_(mode_hex);
 
     // Linear search through MODE_MAPPINGS array to find matching code
-    const auto* mapping = static_cast<decltype(MODE_MAPPINGS)*>(nullptr);
+    decltype(&MODE_MAPPINGS[0]) mapping = nullptr;
     for (size_t i = 0; i < MODE_MAPPINGS_COUNT; i++) {
       if (MODE_MAPPINGS[i].code == mode_byte) {
         mapping = &MODE_MAPPINGS[i];
