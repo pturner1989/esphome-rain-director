@@ -823,7 +823,7 @@ No blockers identified. Implementation can proceed immediately.
   - Tests: TEST-PROCESS-HEX-FORMAT, TEST-PROCESS-HEX-LEADING-ZERO
 
 - Task 3.3: Update Python configuration to register mode_code as text sensor
-  - Status: Backlog
+  - Status: Complete
   - In __init__.py: Change CONF_MODE_CODE from sensor.sensor_schema() to text_sensor.text_sensor_schema()
   - Remove unit_of_measurement and accuracy_decimals parameters (not applicable to text sensor)
   - In to_code(): Change sensor.new_sensor() to text_sensor.new_text_sensor()
