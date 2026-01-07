@@ -30,7 +30,12 @@ static const struct {
   const char* source;
   bool is_refresh;
 } MODE_MAPPINGS[] = {
-  // Placeholder - will be populated in Task 2.2
+  { 0x00, "Normal",  "Filling",  "Rainwater", false },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
+  { 0x01, "Normal",  "Idle",     "Rainwater", false },  // Normal mode, idle on rainwater
+  { 0x04, "Normal",  "Idle",     "Mains",     false },  // Normal mode, idle on mains selected
+  { 0x08, "Holiday", "Idle",     "Mains",     false },  // Holiday mode, idle
+  { 0x0C, "Holiday", "Filling",  "Mains",     false },  // Holiday mode, filling from mains
+  { 0x10, "Refresh", "Draining", "Rainwater", true  },  // Refresh cycle, draining tank
 };
 static const size_t MODE_MAPPINGS_COUNT = sizeof(MODE_MAPPINGS) / sizeof(MODE_MAPPINGS[0]);
 
