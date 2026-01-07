@@ -52,11 +52,7 @@ rain_director:
   mode_code:
     name: "Mode Code"
     entity_category: diagnostic
-    
-  state_code:
-    name: "State Code"
-    entity_category: diagnostic
-    
+
   mode:
     name: "Mode"
     
