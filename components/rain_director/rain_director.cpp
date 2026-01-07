@@ -85,7 +85,6 @@ void RainDirectorComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Rain Director:");
   LOG_SENSOR("  ", "Tank Level", this->tank_level_sensor_);
   LOG_TEXT_SENSOR("  ", "Mode Code", this->mode_code_sensor_);
-  LOG_SENSOR("  ", "State Code", this->state_code_sensor_);
   LOG_TEXT_SENSOR("  ", "Mode", this->mode_text_sensor_);
   LOG_TEXT_SENSOR("  ", "Status", this->status_text_sensor_);
   LOG_TEXT_SENSOR("  ", "Source", this->source_text_sensor_);
