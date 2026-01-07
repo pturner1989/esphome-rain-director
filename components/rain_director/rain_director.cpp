@@ -9,33 +9,58 @@ static const char *const TAG = "rain_director";
 // =======================================================
 // MODE CODE MAPPINGS - Add new discovered codes here
 // =======================================================
-// This structure maps Rain Director hex mode codes to human-readable strings.
-// Format: { hex_code, mode_string, status_string, source_string, is_refresh_indicator }
+// This structure maps Rain Director mode/status byte combinations to human-readable strings
+// using a composite key lookup system with two-tier priority matching.
+//
+// COMPOSITE KEY FORMAT:
+// { mode_byte, status_byte, mode_string, status_string, source_string, is_refresh_indicator, match_any_status_flag }
 //
 // Fields:
-//   - code: The hex byte sent by the Rain Director display panel (device 10)
-//   - mode: The operational mode (Normal, Holiday, Refresh)
+//   - code: The mode byte sent by the Rain Director display panel (device 10) in hex codes
+//   - status_byte: The status byte from JSON messages (only checked if match_any_status=false)
+//   - mode: The operational mode (Normal, Holiday, Refresh, Init, Backup)
 //   - status: The controller status (Idle, Filling, Draining)
 //   - source: The water source (Rainwater, Mains)
 //   - is_refresh: True if this code indicates a refresh cycle (used for state tracking)
+//   - match_any_status: True = status-agnostic (matches mode byte only), False = status-specific (requires exact status byte match)
 //
-// Example: To add a new code 0x14 for "Service Mode, Idle, Mains", add:
-//   { 0x14, "Service", "Idle", "Mains", false },
+// MATCHING PRIORITY:
+// The lookup algorithm searches this array in order from top to bottom.
+// - Status-specific entries (match_any_status=false) should be placed FIRST
+// - Status-agnostic entries (match_any_status=true) should be placed AFTER as fallback
+// - The FIRST matching entry is used, implementing priority matching
 //
+// EXAMPLES:
+// Status-specific entry (requires exact mode AND status byte match):
+//   { 0x40, 0x0F, "Init", "Filling", "Rainwater", false, false }  // Mode 0x40 with Status 0x0F only
+//
+// Status-agnostic entry (matches mode byte regardless of status byte):
+//   { 0x01, 0x00, "Normal", "Idle", "Rainwater", false, true }  // Mode 0x01 with any status (0x00 ignored)
+//
+// IMPORTANT: Mode 0x40 intentionally has NO status-agnostic fallback. Any status byte other than
+// the documented values (0x0F, 0x09) will result in "Unknown" state, allowing detection of
+// unexpected protocol variations.
+//
+// See INIT-BACKUP-MODES-REQ-FN-01: Composite Key Mode Mapping
+// See INIT-BACKUP-MODES-REQ-FN-06: Existing Mode Compatibility
 // See INITIAL-RELEASE-REQ-FN-04: Maintainable Code Mappings
 static const struct {
   uint8_t code;
+  uint8_t status_byte;
   const char* mode;
   const char* status;
   const char* source;
   bool is_refresh;
+  bool match_any_status;
 } MODE_MAPPINGS[] = {
-  { 0x00, "Normal",  "Filling",  "Rainwater", false },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
-  { 0x01, "Normal",  "Idle",     "Rainwater", false },  // Normal mode, idle on rainwater
-  { 0x04, "Normal",  "Idle",     "Mains",     false },  // Normal mode, idle on mains selected
-  { 0x08, "Holiday", "Idle",     "Mains",     false },  // Holiday mode, idle
-  { 0x0C, "Holiday", "Filling",  "Mains",     false },  // Holiday mode, filling from mains
-  { 0x10, "Refresh", "Draining", "Rainwater", true  },  // Refresh cycle, draining tank
+  // STATUS-AGNOSTIC MAPPINGS (match mode byte only, status byte ignored)
+  // These come first temporarily - will be reorganized in Phase 2 when status-specific entries are added
+  { 0x00, 0x00, "Normal",  "Filling",  "Rainwater", false, true },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
+  { 0x01, 0x00, "Normal",  "Idle",     "Rainwater", false, true },  // Normal mode, idle on rainwater
+  { 0x04, 0x00, "Normal",  "Idle",     "Mains",     false, true },  // Normal mode, idle on mains selected
+  { 0x08, 0x00, "Holiday", "Idle",     "Mains",     false, true },  // Holiday mode, idle
+  { 0x0C, 0x00, "Holiday", "Filling",  "Mains",     false, true },  // Holiday mode, filling from mains
+  { 0x10, 0x00, "Refresh", "Draining", "Rainwater", true,  true },  // Refresh cycle, draining tank
 };
 static const size_t MODE_MAPPINGS_COUNT = sizeof(MODE_MAPPINGS) / sizeof(MODE_MAPPINGS[0]);
 
