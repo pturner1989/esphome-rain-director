@@ -178,12 +178,25 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
     std::string mode_hex = hex.substr(4, 2);
     int mode_byte = this->hex_to_int_(mode_hex);
 
-    // Linear search through MODE_MAPPINGS array to find matching code
+    // Composite key lookup through MODE_MAPPINGS array with two-tier priority matching
+    // INIT-BACKUP-MODES-REQ-FN-01: Use both mode byte and status byte for matching
+    // Priority: status-specific entries (match_any_status=false) checked first, then status-agnostic entries (match_any_status=true)
     decltype(&MODE_MAPPINGS[0]) mapping = nullptr;
     for (size_t i = 0; i < MODE_MAPPINGS_COUNT; i++) {
       if (MODE_MAPPINGS[i].code == mode_byte) {
-        mapping = &MODE_MAPPINGS[i];
-        break;
+        // Check if this entry requires status byte matching
+        if (!MODE_MAPPINGS[i].match_any_status) {
+          // Status-specific: both mode and status must match
+          if (MODE_MAPPINGS[i].status_byte == this->last_status_byte_) {
+            mapping = &MODE_MAPPINGS[i];
+            break;
+          }
+          // Continue searching - this mode byte might have a fallback mapping
+        } else {
+          // Status-agnostic: mode byte match is sufficient (fallback behavior)
+          mapping = &MODE_MAPPINGS[i];
+          break;
+        }
       }
     }
 
