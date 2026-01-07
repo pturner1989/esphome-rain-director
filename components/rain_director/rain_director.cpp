@@ -37,9 +37,28 @@ static const char *const TAG = "rain_director";
 // Status-agnostic entry (matches mode byte regardless of status byte):
 //   { 0x01, 0x00, "Normal", "Idle", "Rainwater", false, true }  // Mode 0x01 with any status (0x00 ignored)
 //
+// ADDING NEW DISCOVERED CODES:
+// When you discover a new mode/status combination, determine which pattern to use:
+//
+// 1. STATUS-SPECIFIC (match_any_status=false):
+//    Use when the status byte provides important context that changes the meaning of the mode.
+//    Place in the STATUS-SPECIFIC MAPPINGS section at the top of the array.
+//    Example: If you observe mode 0x20 with status 0x05 doing something different than mode 0x20 with status 0x03,
+//    add two status-specific entries for each combination.
+//
+// 2. STATUS-AGNOSTIC (match_any_status=true):
+//    Use when the mode byte alone fully describes the state, regardless of status byte value.
+//    Place in the STATUS-AGNOSTIC MAPPINGS section after status-specific entries.
+//    Example: If mode 0x20 always means "Maintenance" regardless of status byte, add one status-agnostic entry.
+//
+// 3. STATUS-SPECIFIC WITH NO FALLBACK:
+//    Use when a mode should ONLY be recognized with documented status values, and other combinations are suspicious.
+//    Add only the documented status-specific entries, with NO status-agnostic fallback.
+//    Example: Mode 0x40 (Init) only has entries for status 0x0F and 0x09. Other combinations map to "Unknown".
+//
 // IMPORTANT: Mode 0x40 intentionally has NO status-agnostic fallback. Any status byte other than
 // the documented values (0x0F, 0x09) will result in "Unknown" state, allowing detection of
-// unexpected protocol variations.
+// unexpected protocol variations. This is a deliberate design decision to catch unknown protocol behavior.
 //
 // See INIT-BACKUP-MODES-REQ-FN-01: Composite Key Mode Mapping
 // See INIT-BACKUP-MODES-REQ-FN-06: Existing Mode Compatibility
