@@ -39,7 +39,7 @@ The Rain Director has a spare RJ45 socket on the bottom of the controller that p
 
 ### Rain Director RJ45 Pinout
 
-The RJ45 sockets on the bottom of the Rain Director are interchangable and both pinned as follows:
+The RJ45 sockets on the bottom of the Rain Director are interchangeable and both pinned as follows:
 
 - **Pin 1 (Orange/White)**: RS-485 A (Data+)
 - **Pin 2 (Orange)**: RS-485 B (Data-)
