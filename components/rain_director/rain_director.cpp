@@ -32,6 +32,7 @@ static const struct {
 } MODE_MAPPINGS[] = {
   { 0x00, "Normal",  "Filling",  "Rainwater", false },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
   { 0x01, "Normal",  "Idle",     "Rainwater", false },  // Normal mode, idle on rainwater
+  { 0x02, "Backup",  "Idle",     "Mains",     false },
   { 0x04, "Normal",  "Idle",     "Mains",     false },  // Normal mode, idle on mains selected
   { 0x08, "Holiday", "Idle",     "Mains",     false },  // Holiday mode, idle
   { 0x0C, "Holiday", "Filling",  "Mains",     false },  // Holiday mode, filling from mains
@@ -264,3 +265,4 @@ int RainDirectorComponent::hex_to_int_(const std::string &hex) {
 
 }  // namespace rain_director
 }  // namespace esphome
+
