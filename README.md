@@ -1,8 +1,8 @@
 # ESPHome Rain Director
 
-Monitor and track water usage from a Rain Director rainwater tank system. The Rain Director is provided by a company called Rainwater Harvesting in the UK.
+Monitor and track water usage from a "Rain Director" rainwater tank system. The Rain Director is provided by a company called Rainwater Harvesting Ltd in the UK.
 
-This project interfaces with the Rain Director controller via UART communication to decode operational modes and status codes. The protocol was reverse-engineered by monitoring the serial output, and not all codes have been identified yet. Contributions via PRs or issues are welcome to expand the code mappings.
+This project interfaces with the Rain Director controller via the spare RJ45 socket on the device, using UART communication to decode operational modes and status codes. The protocol was reverse-engineered by monitoring the serial output, and not all codes have been identified yet. Contributions via PRs or issues are welcome to expand the code mappings.
 
 This project is not affiliated with the manufacturer in any way and takes no responsibility for any issues caused by connecting an ESP32 to the Rain Director.
 
@@ -87,43 +87,7 @@ The RJ45 sockets on the bottom of the Rain Director are interchangeable and both
 
 Once your ESP32 is wired up and powered, you can install the firmware.
 
-### Option 1: Quick Install via ESPHome Web (Easiest)
-
-This method works directly in your web browser without needing Home Assistant:
-
-1. Connect your ESP32 to your computer via USB
-2. Click this button to open ESPHome Web with the configuration pre-loaded:
-
-   <a href="https://web.esphome.io/?dashboard_install" target="_blank">
-     <img src="https://img.shields.io/badge/Install%20with-ESPHome%20Web-blue?logo=esphome" alt="Install with ESPHome Web">
-   </a>
-
-3. Click **"Connect"** and select your ESP32's serial port
-4. Click **"Install"** and choose **"Prepare for first use"**
-5. When prompted, paste this configuration:
-
-```yaml
-substitutions:
-  name: "rain-director"
-  friendly_name: "Rain Director"
-  tank_capacity: "80.0"
-
-packages:
-  remote_package:
-    url: https://github.com/pturner1989/esphome-rain-director
-    ref: main
-    files: [rain-director.yaml]
-    refresh: 1d
-
-wifi:
-  ssid: "YOUR_WIFI_SSID"
-  password: "YOUR_WIFI_PASSWORD"
-```
-
-6. Replace `YOUR_WIFI_SSID` and `YOUR_WIFI_PASSWORD` with your actual WiFi credentials
-7. Click **"Install"** and wait for the firmware to compile and upload
-
-### Option 2: ESPHome Dashboard (For Home Assistant Users)
+### Option 1: ESPHome Dashboard
 
 1. In the ESPHome Dashboard, click **"+ NEW DEVICE"**
 2. Click **"CONTINUE"** and give it a name (e.g., "Rain Director")
@@ -150,15 +114,15 @@ wifi:
   password: !secret wifi_password
 ```
 
-7. Adjust the `tank_capacity` if needed (default is 80 liters)
+7. Adjust the `tank_capacity` if needed (default is 80 liters, the standard tank is 100 litres but 80 seemed to align better with observed usage for me, maybe depends on sensor positioning)
 8. Click **"SAVE"** and then **"INSTALL"**
 9. Choose your installation method (USB, Wireless, etc.)
 
-**How it works**: This minimal config imports the full Rain Director configuration from GitHub using ESPHome's `packages` feature. Updates are checked daily, so you'll automatically get improvements to the component.
+**How it works**: This minimal config imports the full Rain Director configuration from GitHub using ESPHome's `packages` feature. Updates are checked daily, so you'll get improvements to the component such as newly discovered modes, when you update the device firmware.
 
 ### Advanced: Local Installation
 
-**Note:** Most users should use Options 1 or 2 above. Local installation is only needed for advanced customization or offline development.
+**Note:** Most users should use Options 1 above. Local installation is only needed for advanced customization or offline development.
 
 If you want to customize the configuration or work offline:
 
@@ -183,7 +147,7 @@ substitutions:
 
 ### Custom Component
 
-This project uses a custom `rain_director` component located in the `components/` directory. Make sure this directory is included in the esphome directory when deploying.
+This project uses a custom `rain_director` component located in the `components/` directory to read the RS-485 data and extract the mode codes. Make sure this directory is included in the esphome directory when deploying.
 
 ## Troubleshooting
 
@@ -225,10 +189,19 @@ If sensors don't appear in Home Assistant after installation:
 
 The Rain Director communicates via UART (9600 baud) sending periodic status updates. The custom component parses these messages to extract:
 
-- **Mode** - Operational modes like Normal, Holiday, and Refresh
-- **State** - Controller states like Idle, Filling, and Draining
+- **Mode** - Operational modes like:
+   - Calibration - Sequence run when the Rain Director is turned on
+   - Normal - Manually set to rainwater or mains mode and operating normally
+   - Backup - Failover to mains as rainwater tank is empty or pump is faulty
+   - Holiday - Header tank refreshed with mains water, revert to rainwater on next refill (set manually on controller)
+   - Refresh - Header tank drained and refilled from the outside rainwater tank (set manually on controller)
+- **State** - Controller states like
+   - Idle - All valves closed
+   - Filling - Fill valve for active water source open, header tank filling
+   - Draining - Drain valve open, water draining to outside rainwater tank
 - **Tank level** - Water level as a percentage
-- **Water source** - Whether the system is using rainwater or mains
+- **Water source** - Whether the system is currently using rainwater or mains
+- **Tank Volume** - Water volume in the tank in Litres (dependent on correct tank_capacity being set in config)
 
 ### Message Format
 
@@ -264,15 +237,18 @@ The display panel (device 10) sends mode codes that have been reverse-engineered
 
 - `0x00` = Filling (rainwater or refresh fill)
 - `0x01` = Normal mode, idle (rainwater)
+- `0x02` = Backup mode, idle (mains, backup)
 - `0x04` = Normal mode, idle (mains selected)
 - `0x08` = Holiday mode, idle
 - `0x0C` = Holiday mode, filling from mains
 - `0x10` = Refresh mode, draining
+- `0xC0` = Calibration mode, draining
+- `0xC0` = Calibration mode, refilling from rainwater to 70%, then mains until stopped by float valve (determines sensor reading when full)
 
 The mode and state code mappings were determined by monitoring the serial output and correlating with observed behavior. Not all possible codes have been identified. If you discover additional codes, please contribute via:
 
 - Opening an issue with the full hex code or mode+status codes (available as diagnostic sensors) and observed behavior
-- Submitting a PR to add new code mappings to the component
+- Submitting a PR to add new code mappings to the component, located in `components/rain_director/rain_director.cpp`
 
 ## Sensors
 
@@ -295,4 +271,4 @@ This project is MIT-license open source.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome, especially if you figure out how to send commands to the controller! Please open an issue or submit a pull request. 
