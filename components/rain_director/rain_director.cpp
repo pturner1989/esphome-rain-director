@@ -172,7 +172,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
 
     if (mapping == nullptr) {
       // Unknown code - log warning and publish "Unknown" for all text sensors
-      ESP_LOGW(TAG, "Unknown mode code: %s %d", mode_hex, mode_byte);
+      ESP_LOGW(TAG, "Unknown mode code: %s - %d", mode_hex, mode_byte);
       mode_str = "Unknown";
       status_str = "Unknown";
       source_str = "Unknown";
@@ -267,6 +267,7 @@ int RainDirectorComponent::hex_to_int_(const std::string &hex) {
 
 }  // namespace rain_director
 }  // namespace esphome
+
 
 
 
