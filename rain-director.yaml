@@ -35,6 +35,7 @@ improv_serial:
 external_components:
   - source: github://pturner1989/esphome-rain-director@main
     components: [ rain_director ]
+    refresh: 1s
 
 uart:
   id: uart_bus
