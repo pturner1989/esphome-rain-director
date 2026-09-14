@@ -393,6 +393,7 @@ Nothing else is skipped. Any other unrecognised character rejects the whole inpu
 ```
 Replay needs Bus Capture on. Nothing sent.
 Replay input is empty. Nothing sent.
+Replay input '...' holds no bytes. Nothing sent.
 Replay input '...' holds a character that is not a hex digit or a separator. Nothing sent.
 Replay input is longer than the 256 byte limit. Nothing sent.
 Replay input '...' is not whole hex digit pairs. Nothing sent.

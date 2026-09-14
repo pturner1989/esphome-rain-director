@@ -47,6 +47,9 @@ api:
             };
             std::string input = hex;
             trim(input);
+            // Remembered before the prefix strip, so an input that held only a
+            // log prefix is not reported as an empty field.
+            bool blank_field = input.empty();
             size_t prefix_end = input.rfind("]: ");
             if (prefix_end != std::string::npos) {
               input.erase(0, prefix_end + 3);
@@ -98,7 +101,13 @@ api:
             if (reason != REASON_NONE) {
               switch (reason) {
                 case REASON_EMPTY:
-                  ESP_LOGW("rd.replay", "Replay input is empty. Nothing sent.");
+                  if (blank_field) {
+                    ESP_LOGW("rd.replay", "Replay input is empty. Nothing sent.");
+                  } else {
+                    ESP_LOGW("rd.replay",
+                             "Replay input '%s' holds no bytes. Nothing sent.",
+                             hex.c_str());
+                  }
                   break;
                 case REASON_CHARACTER:
                   ESP_LOGW("rd.replay",
