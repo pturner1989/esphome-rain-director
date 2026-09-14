@@ -57,7 +57,7 @@ The sequence must log at INFO, because the project ships the logger at INFO and 
 
 ### Task 2: Printable-text line beside each hex line
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 1
 
 **What to build:**

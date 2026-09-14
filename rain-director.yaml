@@ -52,19 +52,24 @@ uart:
       - lambda: |-
           if (!id(bus_capture).state) return;
           std::string hex;
+          std::string text;
           char buf[4];
           for (size_t i = 0; i < bytes.size(); i++) {
             if (i != 0) hex += ' ';
             snprintf(buf, sizeof(buf), "%02X", bytes[i]);
             hex += buf;
+            // One character per byte, so the text line lines up with the
+            // byte pairs on the hex line.
+            uint8_t b = bytes[i];
+            text += (b >= 0x20 && b <= 0x7E) ? (char) b : '.';
           }
-          if (direction == esphome::uart::UART_DIRECTION_RX) {
-            ESP_LOGI("rd.rx", "%s", hex.c_str());
-          } else {
-            ESP_LOGI("rd.tx", "%s", hex.c_str());
-          }
+          bool is_rx = direction == esphome::uart::UART_DIRECTION_RX;
+          // The hex line comes first: it is the form the replay action takes.
+          ESP_LOGI(is_rx ? "rd.rx" : "rd.tx", "%s", hex.c_str());
           // Matches the built-in hex helper: without this pause the logger
           // drops API log lines during bursts of traffic.
+          delay(10);
+          ESP_LOGI(is_rx ? "rd.rx.text" : "rd.tx.text", "%s", text.c_str());
           delay(10);
 
 rain_director:
