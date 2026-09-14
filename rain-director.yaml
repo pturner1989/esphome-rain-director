@@ -41,6 +41,31 @@ uart:
   rx_pin: GPIO16
   tx_pin: GPIO17
   baud_rate: 9600
+  debug:
+    direction: BOTH
+    # Frames start with a delimiter rather than ending with one, so group
+    # bytes on an idle gap with a byte cap instead of on a delimiter.
+    after:
+      bytes: 150
+      timeout: 100ms
+    sequence:
+      - lambda: |-
+          if (!id(bus_capture).state) return;
+          std::string hex;
+          char buf[4];
+          for (size_t i = 0; i < bytes.size(); i++) {
+            if (i != 0) hex += ' ';
+            snprintf(buf, sizeof(buf), "%02X", bytes[i]);
+            hex += buf;
+          }
+          if (direction == esphome::uart::UART_DIRECTION_RX) {
+            ESP_LOGI("rd.rx", "%s", hex.c_str());
+          } else {
+            ESP_LOGI("rd.tx", "%s", hex.c_str());
+          }
+          // Matches the built-in hex helper: without this pause the logger
+          // drops API log lines during bursts of traffic.
+          delay(10);
 
 rain_director:
   uart_id: uart_bus
@@ -162,6 +187,15 @@ sensor:
 binary_sensor:
   - platform: status
     name: "Status"
+
+switch:
+  - platform: template
+    name: "Bus Capture"
+    id: bus_capture
+    icon: "mdi:bug-outline"
+    entity_category: config
+    optimistic: true
+    restore_mode: ALWAYS_OFF
 
 button:
   - platform: restart
