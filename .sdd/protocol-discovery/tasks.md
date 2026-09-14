@@ -89,7 +89,7 @@ The text line is for reading only and the replay action never accepts it, so kee
 
 ### Task 3: Replay action happy path
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 1
 
 **What to build:**

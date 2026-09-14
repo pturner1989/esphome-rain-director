@@ -20,6 +20,50 @@ logger:
   level: INFO
 
 api:
+  actions:
+    # Writes operator-supplied bytes to the bus. A lambda rather than
+    # uart.write, so bad input can be refused with a warning.
+    - action: replay_bytes
+      variables:
+        hex: string
+      then:
+        - lambda: |-
+            if (!id(bus_capture).state) return;
+            auto nibble = [](char c) -> int {
+              if (c >= '0' && c <= '9') return c - '0';
+              if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+              if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+              return -1;
+            };
+            auto is_separator = [](char c) -> bool {
+              return c == ' ' || c == ':' || c == ',' || c == '-';
+            };
+            std::vector<uint8_t> out;
+            size_t i = 0;
+            bool ok = true;
+            bool first = true;
+            while (i < hex.size()) {
+              // Pairs after the first must be preceded by at least one separator.
+              if (!first) {
+                size_t seen = 0;
+                while (i < hex.size() && is_separator(hex[i])) { i++; seen++; }
+                if (seen == 0) { ok = false; break; }
+              }
+              if (i + 1 >= hex.size()) { ok = false; break; }
+              int high = nibble(hex[i]);
+              int low = nibble(hex[i + 1]);
+              if (high < 0 || low < 0) { ok = false; break; }
+              out.push_back((uint8_t) ((high << 4) | low));
+              i += 2;
+              first = false;
+              // Above the capture group size and above any frame the component accepts.
+              if (out.size() > 256) { ok = false; break; }
+            }
+            if (!ok || out.empty()) {
+              ESP_LOGW("rd.replay", "Could not read the supplied bytes");
+              return;
+            }
+            id(uart_bus)->write_array(out.data(), out.size());
 
 ota:
   - platform: esphome
