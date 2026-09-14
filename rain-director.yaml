@@ -34,6 +34,24 @@ api:
               ESP_LOGW("rd.replay", "Replay needs Bus Capture on. Nothing sent.");
               return;
             }
+            // The operator may paste a whole log line. Trim the outer
+            // whitespace, then drop any log prefix up to and including the
+            // last "]: ". Nothing else is stripped: a parser that skipped
+            // unrecognised characters would read a timestamp as hex digits
+            // and write invented bytes to a bus that drives water valves.
+            auto trim = [](std::string &s) {
+              const char *ws = " \t\r\n";
+              size_t begin = s.find_first_not_of(ws);
+              if (begin == std::string::npos) { s.clear(); return; }
+              s = s.substr(begin, s.find_last_not_of(ws) - begin + 1);
+            };
+            std::string input = hex;
+            trim(input);
+            size_t prefix_end = input.rfind("]: ");
+            if (prefix_end != std::string::npos) {
+              input.erase(0, prefix_end + 3);
+              trim(input);
+            }
             auto nibble = [](char c) -> int {
               if (c >= '0' && c <= '9') return c - '0';
               if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -51,20 +69,20 @@ api:
             std::vector<uint8_t> out;
             size_t i = 0;
             bool first = true;
-            while (i < hex.size()) {
+            while (i < input.size()) {
               // Pairs after the first must be preceded by at least one separator.
               if (!first) {
                 size_t seen = 0;
-                while (i < hex.size() && is_separator(hex[i])) { i++; seen++; }
+                while (i < input.size() && is_separator(input[i])) { i++; seen++; }
                 if (seen == 0) { reason = REASON_SEPARATOR; break; }
-                if (i >= hex.size()) break;
+                if (i >= input.size()) break;
               }
-              if (i + 1 >= hex.size()) {
-                reason = nibble(hex[i]) < 0 ? REASON_CHARACTER : REASON_PAIRS;
+              if (i + 1 >= input.size()) {
+                reason = nibble(input[i]) < 0 ? REASON_CHARACTER : REASON_PAIRS;
                 break;
               }
-              int high = nibble(hex[i]);
-              int low = nibble(hex[i + 1]);
+              int high = nibble(input[i]);
+              int low = nibble(input[i + 1]);
               if (high < 0 || low < 0) { reason = REASON_CHARACTER; break; }
               // Above the capture group size and above any frame the component accepts.
               if (out.size() >= 256) { reason = REASON_LIMIT; break; }
@@ -73,7 +91,7 @@ api:
               first = false;
             }
             if (reason == REASON_NONE && out.empty()) {
-              reason = hex.empty() ? REASON_EMPTY : REASON_PAIRS;
+              reason = input.empty() ? REASON_EMPTY : REASON_PAIRS;
             }
             // The whole input is refused, so a late fault never leaves a
             // partial sequence on the bus.

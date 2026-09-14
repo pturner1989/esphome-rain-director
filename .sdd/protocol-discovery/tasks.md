@@ -200,7 +200,7 @@ AC-3 is the important one. A lenient parser that ignores what it does not recogn
 
 ### Task 6: Paste a whole capture log line
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 5
 
 **What to build:**
