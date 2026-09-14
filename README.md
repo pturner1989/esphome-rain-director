@@ -383,7 +383,7 @@ If your device name carries a MAC suffix, the action name will carry it too — 
 
 Accepted input:
 
-- Hexadecimal digit pairs in either case, separated by one or more spaces, colons, commas or hyphens
+- Hexadecimal digit pairs in either case. A separator between pairs is optional: use one or more spaces, colons, commas or hyphens, or run the digits together
 - Leading and trailing whitespace is trimmed
 - A whole copied log line works as-is: everything up to and including the last `]: ` is discarded, so `[19:34:02][I][rd.rx:123]: 3C 31 30 35 33` is the same input as `3C 31 30 35 33`
 - Maximum 256 bytes
@@ -394,7 +394,6 @@ Nothing else is skipped. Any other unrecognised character rejects the whole inpu
 Replay needs Bus Capture on. Nothing sent.
 Replay input is empty. Nothing sent.
 Replay input '...' holds a character that is not a hex digit or a separator. Nothing sent.
-Replay input '...' needs a separator between hex pairs. Nothing sent.
 Replay input is longer than the 256 byte limit. Nothing sent.
 Replay input '...' is not whole hex digit pairs. Nothing sent.
 ```

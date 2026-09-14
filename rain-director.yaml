@@ -64,17 +64,17 @@ api:
             // Every rejection names its own cause, so the warning tells the
             // operator what to fix.
             enum Reason { REASON_NONE, REASON_EMPTY, REASON_CHARACTER,
-                          REASON_SEPARATOR, REASON_PAIRS, REASON_LIMIT };
+                          REASON_PAIRS, REASON_LIMIT };
             Reason reason = REASON_NONE;
             std::vector<uint8_t> out;
             size_t i = 0;
             bool first = true;
             while (i < input.size()) {
-              // Pairs after the first must be preceded by at least one separator.
+              // Separators are allowed between pairs but are not required, so a
+              // run of hex digits with no separators is accepted. A separator
+              // inside a pair still fails as a bad character.
               if (!first) {
-                size_t seen = 0;
-                while (i < input.size() && is_separator(input[i])) { i++; seen++; }
-                if (seen == 0) { reason = REASON_SEPARATOR; break; }
+                while (i < input.size() && is_separator(input[i])) { i++; }
                 if (i >= input.size()) break;
               }
               if (i + 1 >= input.size()) {
@@ -104,11 +104,6 @@ api:
                   ESP_LOGW("rd.replay",
                            "Replay input '%s' holds a character that is not a hex digit "
                            "or a separator. Nothing sent.", hex.c_str());
-                  break;
-                case REASON_SEPARATOR:
-                  ESP_LOGW("rd.replay",
-                           "Replay input '%s' needs a separator between hex pairs. "
-                           "Nothing sent.", hex.c_str());
                   break;
                 case REASON_LIMIT:
                   // The input is not quoted here. It runs to 770 characters or
