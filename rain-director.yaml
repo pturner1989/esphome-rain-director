@@ -43,29 +43,66 @@ api:
             auto is_separator = [](char c) -> bool {
               return c == ' ' || c == ':' || c == ',' || c == '-';
             };
+            // Every rejection names its own cause, so the warning tells the
+            // operator what to fix.
+            enum Reason { REASON_NONE, REASON_EMPTY, REASON_CHARACTER,
+                          REASON_SEPARATOR, REASON_PAIRS, REASON_LIMIT };
+            Reason reason = REASON_NONE;
             std::vector<uint8_t> out;
             size_t i = 0;
-            bool ok = true;
             bool first = true;
             while (i < hex.size()) {
               // Pairs after the first must be preceded by at least one separator.
               if (!first) {
                 size_t seen = 0;
                 while (i < hex.size() && is_separator(hex[i])) { i++; seen++; }
-                if (seen == 0) { ok = false; break; }
+                if (seen == 0) { reason = REASON_SEPARATOR; break; }
+                if (i >= hex.size()) break;
               }
-              if (i + 1 >= hex.size()) { ok = false; break; }
+              if (i + 1 >= hex.size()) {
+                reason = nibble(hex[i]) < 0 ? REASON_CHARACTER : REASON_PAIRS;
+                break;
+              }
               int high = nibble(hex[i]);
               int low = nibble(hex[i + 1]);
-              if (high < 0 || low < 0) { ok = false; break; }
+              if (high < 0 || low < 0) { reason = REASON_CHARACTER; break; }
+              // Above the capture group size and above any frame the component accepts.
+              if (out.size() >= 256) { reason = REASON_LIMIT; break; }
               out.push_back((uint8_t) ((high << 4) | low));
               i += 2;
               first = false;
-              // Above the capture group size and above any frame the component accepts.
-              if (out.size() > 256) { ok = false; break; }
             }
-            if (!ok || out.empty()) {
-              ESP_LOGW("rd.replay", "Could not read the supplied bytes");
+            if (reason == REASON_NONE && out.empty()) {
+              reason = hex.empty() ? REASON_EMPTY : REASON_PAIRS;
+            }
+            // The whole input is refused, so a late fault never leaves a
+            // partial sequence on the bus.
+            if (reason != REASON_NONE) {
+              switch (reason) {
+                case REASON_EMPTY:
+                  ESP_LOGW("rd.replay", "Replay input is empty. Nothing sent.");
+                  break;
+                case REASON_CHARACTER:
+                  ESP_LOGW("rd.replay",
+                           "Replay input '%s' holds a character that is not a hex digit "
+                           "or a separator. Nothing sent.", hex.c_str());
+                  break;
+                case REASON_SEPARATOR:
+                  ESP_LOGW("rd.replay",
+                           "Replay input '%s' needs a separator between hex pairs. "
+                           "Nothing sent.", hex.c_str());
+                  break;
+                case REASON_LIMIT:
+                  ESP_LOGW("rd.replay",
+                           "Replay input '%s' is longer than the 256 byte limit. "
+                           "Nothing sent.", hex.c_str());
+                  break;
+                default:
+                  ESP_LOGW("rd.replay",
+                           "Replay input '%s' is not whole hex digit pairs. "
+                           "Nothing sent.", hex.c_str());
+                  break;
+              }
               return;
             }
             id(uart_bus)->write_array(out.data(), out.size());

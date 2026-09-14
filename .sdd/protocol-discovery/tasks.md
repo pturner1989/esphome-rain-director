@@ -158,7 +158,7 @@ The switch is the only shared state between capture and replay, so one control o
 
 ### Task 5: Malformed replay input rejected
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 4
 
 **What to build:**
