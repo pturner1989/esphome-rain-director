@@ -15,6 +15,7 @@ This project is not affiliated with the manufacturer in any way and takes no res
 - Tank volume calculation
 - Water source tracking
 - Consumption counters with reset capability
+- Optional bus capture and replay for protocol discovery
 - WiFi connectivity with fallback AP
 - Home Assistant integration
 
@@ -338,6 +339,79 @@ The mode and state code mappings were determined by monitoring the serial output
 - Opening an issue with the full hex code or mode+status codes (available as diagnostic sensors) and observed behavior
 - Submitting a PR to add new code mappings to the component
 
+## Bus Capture and Replay
+
+To help with the work above, the firmware can log every byte that crosses the RS-485 bus, and can write bytes of your choosing back onto it. Both are driven by the **Bus Capture** switch, which you will find under the device's configuration entities with a bug icon.
+
+Bus Capture is **off after every restart** and does not remember its previous state. If you never switch it on, nothing about the device changes.
+
+### Watching the bus
+
+1. Switch **Bus Capture** on.
+2. Open the device's logs (the ESPHome Dashboard log viewer, `esphome logs`, or the Home Assistant ESPHome integration's "Visit Device" log page).
+3. Each group of bytes now produces two lines:
+
+```
+[19:34:02][I][rd.rx:123]: 3C 31 30 35 33
+[19:34:02][I][rd.rx.text:123]: <1053
+```
+
+| Tag | Meaning |
+|-----|---------|
+| `rd.rx` | Bytes the device **received** from the bus |
+| `rd.tx` | Bytes the device **sent** to the bus |
+| `rd.rx.text` / `rd.tx.text` | The same bytes as printable characters, with `.` for anything unprintable |
+| `rd.replay` | Warnings from the replay action |
+
+The `rd.rx` and `rd.tx` lines are the ones to copy. The `.text` lines are for reading only — replay never accepts them.
+
+Each group costs two log lines and a short blocking pause, so capture is meant for a session at the bench, not for permanent use. If lines seem to go missing under heavy traffic, that is the known cost of the second line.
+
+### Replaying bytes
+
+With Bus Capture on, call the device's `replay_bytes` action from **Developer Tools → Actions** in Home Assistant. It takes one text field, `hex`. In YAML mode:
+
+```yaml
+action: esphome.rain_director_replay_bytes
+data:
+  hex: "DE AD BE EF"
+```
+
+If your device name carries a MAC suffix, the action name will carry it too — pick the entry the Actions list offers you.
+
+`DE AD BE EF` is used here deliberately: it is obviously not a Rain Director frame, so the component will not parse it and the controller will ignore it. It proves the path works without asking the controller to do anything. Do **not** use it as a template for real frames without reading the warnings below.
+
+Accepted input:
+
+- Hexadecimal digit pairs in either case, separated by one or more spaces, colons, commas or hyphens
+- Leading and trailing whitespace is trimmed
+- A whole copied log line works as-is: everything up to and including the last `]: ` is discarded, so `[19:34:02][I][rd.rx:123]: 3C 31 30 35 33` is the same input as `3C 31 30 35 33`
+- Maximum 256 bytes
+
+Nothing else is skipped. Any other unrecognised character rejects the whole input, so a timestamp is never mistaken for data. When input is refused, a warning under the `rd.replay` tag says why and nothing is sent:
+
+```
+Replay needs Bus Capture on. Nothing sent.
+Replay input is empty. Nothing sent.
+Replay input '...' holds a character that is not a hex digit or a separator. Nothing sent.
+Replay input '...' needs a separator between hex pairs. Nothing sent.
+Replay input '...' is longer than the 256 byte limit. Nothing sent.
+Replay input '...' is not whole hex digit pairs. Nothing sent.
+```
+
+When the input is accepted, the log shows an `rd.tx` line with the bytes you sent.
+
+### Warnings
+
+- **Replay writes to a controller that operates mains water valves.** Choose what you send deliberately. Replaying a captured display or level frame can make the controller act.
+- **The bus is half-duplex and shared.** A replayed frame can collide with a frame already in flight. The worst case is a corrupted read and a retry.
+- **Switch Bus Capture off when the session ends.** Nothing turns it off except a restart.
+- **You will probably hear your own bytes.** The MAX485 module is auto-direction, so replayed bytes usually come straight back as an `rd.rx` line with identical content. If a sensor value moves at that moment, the device has parsed its own echo. **That is not proof that the controller replied.** An echo is immediate and byte-for-byte identical; a genuine reply would differ in content, or arrive after a gap.
+
+### Finishing a session
+
+Switch **Bus Capture** off. The logs return to normal and the replay action stops accepting input.
+
 ## Sensors
 
 - **Tank Level** - Tank fill percentage (0-100%)
@@ -361,6 +435,7 @@ The mode and state code mappings were determined by monitoring the serial output
 
 - **Restart** - Restart the ESP32
 - **Reset Consumption Counters** - Reset rainwater and mains usage totals
+- **Bus Capture** - Log every byte on the RS-485 bus and allow replay. Off after every restart. See [Bus Capture and Replay](#bus-capture-and-replay)
 
 ## License
 

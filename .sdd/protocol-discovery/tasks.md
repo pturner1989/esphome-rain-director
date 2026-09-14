@@ -237,7 +237,7 @@ The closing bracket is neither a hexadecimal digit nor a separator, so the seque
 
 ### Task 7: Document capture and replay in the README
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 2, Task 4, Task 6
 
 **What to build:**
