@@ -385,7 +385,7 @@ Accepted input:
 
 - Hexadecimal digit pairs in either case. A separator between pairs is optional: use one or more spaces, colons, commas or hyphens, or run the digits together
 - Leading and trailing whitespace is trimmed
-- A whole copied log line works as-is: everything up to and including the last `]: ` is discarded, so `[19:34:02][I][rd.rx:123]: 3C 31 30 35 33` is the same input as `3C 31 30 35 33`
+- A whole copied log line works as-is: everything up to and including the last `]: ` is discarded, so `[19:34:02][I][rd.rx:123]: DE AD BE EF` is the same input as `DE AD BE EF`
 - Maximum 256 bytes
 
 Nothing else is skipped. Any other unrecognised character rejects the whole input, so a timestamp is never mistaken for data. When input is refused, a warning under the `rd.replay` tag says why and nothing is sent:
