@@ -15,7 +15,8 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   void dump_config() override;
 
   void set_tank_level_sensor(sensor::Sensor *sensor) { tank_level_sensor_ = sensor; }
-  void set_mode_code_sensor(text_sensor::TextSensor *sensor) { mode_code_sensor_ = sensor; }
+  void set_mode_code_sensor(sensor::Sensor *sensor) { mode_code_sensor_ = sensor; }
+  void set_state_code_sensor(sensor::Sensor *sensor) { state_code_sensor_ = sensor; }
   void set_mode_text_sensor(text_sensor::TextSensor *sensor) { mode_text_sensor_ = sensor; }
   void set_status_text_sensor(text_sensor::TextSensor *sensor) { status_text_sensor_ = sensor; }
   void set_source_text_sensor(text_sensor::TextSensor *sensor) { source_text_sensor_ = sensor; }
@@ -28,7 +29,8 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   int hex_to_int_(const std::string &hex);
 
   sensor::Sensor *tank_level_sensor_{nullptr};
-  text_sensor::TextSensor *mode_code_sensor_{nullptr};
+  sensor::Sensor *mode_code_sensor_{nullptr};
+  sensor::Sensor *state_code_sensor_{nullptr};
   text_sensor::TextSensor *mode_text_sensor_{nullptr};
   text_sensor::TextSensor *status_text_sensor_{nullptr};
   text_sensor::TextSensor *source_text_sensor_{nullptr};
@@ -37,8 +39,6 @@ class RainDirectorComponent : public Component, public uart::UARTDevice {
   int last_top_{-1};
   int last_mode_{-1};
   int last_state_{-1};
-  uint8_t last_status_byte_{0x00};
-  bool status_byte_received_{false};
   std::string last_status_;
   std::string last_source_;
   std::string last_mode_str_;

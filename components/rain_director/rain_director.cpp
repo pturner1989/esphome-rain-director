@@ -9,90 +9,36 @@ static const char *const TAG = "rain_director";
 // =======================================================
 // MODE CODE MAPPINGS - Add new discovered codes here
 // =======================================================
-// This structure maps Rain Director mode/status byte combinations to human-readable strings
-// using a composite key lookup system with two-tier priority matching.
-//
-// COMPOSITE KEY FORMAT:
-// { mode_byte, status_byte, mode_string, status_string, source_string, is_refresh_indicator, match_any_status_flag }
+// This structure maps Rain Director hex mode codes to human-readable strings.
+// Format: { hex_code, mode_string, status_string, source_string, is_refresh_indicator }
 //
 // Fields:
-//   - code: The mode byte sent by the Rain Director display panel (device 10) in hex codes
-//   - status_byte: The status byte from JSON messages (only checked if match_any_status=false)
-//   - mode: The operational mode (Normal, Holiday, Refresh, Init, Backup)
+//   - code: The hex byte sent by the Rain Director display panel (device 10)
+//   - mode: The operational mode (Normal, Holiday, Refresh)
 //   - status: The controller status (Idle, Filling, Draining)
 //   - source: The water source (Rainwater, Mains)
 //   - is_refresh: True if this code indicates a refresh cycle (used for state tracking)
-//   - match_any_status: True = status-agnostic (matches mode byte only), False = status-specific (requires exact status byte match)
 //
-// MATCHING PRIORITY:
-// The lookup algorithm searches this array in order from top to bottom.
-// - Status-specific entries (match_any_status=false) should be placed FIRST
-// - Status-agnostic entries (match_any_status=true) should be placed AFTER as fallback
-// - The FIRST matching entry is used, implementing priority matching
+// Example: To add a new code 0x14 for "Service Mode, Idle, Mains", add:
+//   { 0x14, "Service", "Idle", "Mains", false },
 //
-// EXAMPLES:
-// Status-specific entry (requires exact mode AND status byte match):
-//   { 0x40, 0x0F, "Init", "Filling", "Rainwater", false, false }  // Mode 0x40 with Status 0x0F only
-//
-// Status-agnostic entry (matches mode byte regardless of status byte):
-//   { 0x01, 0x00, "Normal", "Idle", "Rainwater", false, true }  // Mode 0x01 with any status (0x00 ignored)
-//
-// ADDING NEW DISCOVERED CODES:
-// When you discover a new mode/status combination, determine which pattern to use:
-//
-// 1. STATUS-SPECIFIC (match_any_status=false):
-//    Use when the status byte provides important context that changes the meaning of the mode.
-//    Place in the STATUS-SPECIFIC MAPPINGS section at the top of the array.
-//    Example: If you observe mode 0x20 with status 0x05 doing something different than mode 0x20 with status 0x03,
-//    add two status-specific entries for each combination.
-//
-// 2. STATUS-AGNOSTIC (match_any_status=true):
-//    Use when the mode byte alone fully describes the state, regardless of status byte value.
-//    Place in the STATUS-AGNOSTIC MAPPINGS section after status-specific entries.
-//    Example: If mode 0x20 always means "Maintenance" regardless of status byte, add one status-agnostic entry.
-//
-// 3. STATUS-SPECIFIC WITH NO FALLBACK:
-//    Use when a mode should ONLY be recognized with documented status values, and other combinations are suspicious.
-//    Add only the documented status-specific entries, with NO status-agnostic fallback.
-//    Example: Mode 0x40 (Init) only has entries for status 0x0F and 0x09. Other combinations map to "Unknown".
-//
-// IMPORTANT: Mode 0x40 intentionally has NO status-agnostic fallback. Any status byte other than
-// the documented values (0x0F, 0x09) will result in "Unknown" state, allowing detection of
-// unexpected protocol variations. This is a deliberate design decision to catch unknown protocol behavior.
-//
-// See INIT-BACKUP-MODES-REQ-FN-01: Composite Key Mode Mapping
-// See INIT-BACKUP-MODES-REQ-FN-06: Existing Mode Compatibility
 // See INITIAL-RELEASE-REQ-FN-04: Maintainable Code Mappings
 static const struct {
   uint8_t code;
-  uint8_t status_byte;
   const char* mode;
   const char* status;
   const char* source;
   bool is_refresh;
-  bool match_any_status;
 } MODE_MAPPINGS[] = {
-  // STATUS-SPECIFIC MAPPINGS (require exact mode + status match)
-  // These entries are checked first for priority matching
-  // INIT-BACKUP-MODES-REQ-FN-02: New Initialization Mode Mappings
-  { 0xC0, 0x0F, "Init",    "Draining", "Rainwater", false, false }, // Initialization: draining header tank on Rain Director boot
-  { 0x40, 0x0F, "Init",    "Filling",  "Rainwater", false, false }, // Initialization: refilling header tank from rainwater
-  { 0x40, 0x09, "Init",    "Filling",  "Mains",     false, false }, // Initialization: refilling header tank from mains
-  // NOTE: Mode 0x40 intentionally has NO status-agnostic fallback. Other status bytes will map to "Unknown".
-
-  // INIT-BACKUP-MODES-REQ-FN-03: New Mains Backup Mode Mappings
-  { 0x02, 0x01, "Backup",  "Idle",     "Mains",     false, false }, // Backup mode: rainwater tank empty, idle on mains only
-  { 0x00, 0x01, "Backup",  "Filling",  "Mains",     false, false }, // Backup mode: rainwater tank empty, filling from mains
-
-  // STATUS-AGNOSTIC MAPPINGS (match mode byte only, status byte ignored)
-  // These entries serve as fallback when no status-specific match is found
-  // INIT-BACKUP-MODES-REQ-FN-06: Existing Mode Compatibility
-  { 0x00, 0x00, "Normal",  "Filling",  "Rainwater", false, true },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
-  { 0x01, 0x00, "Normal",  "Idle",     "Rainwater", false, true },  // Normal mode, idle on rainwater
-  { 0x04, 0x00, "Normal",  "Idle",     "Mains",     false, true },  // Normal mode, idle on mains selected
-  { 0x08, 0x00, "Holiday", "Idle",     "Mains",     false, true },  // Holiday mode, idle
-  { 0x0C, 0x00, "Holiday", "Filling",  "Mains",     false, true },  // Holiday mode, filling from mains
-  { 0x10, 0x00, "Refresh", "Draining", "Rainwater", true,  true },  // Refresh cycle, draining tank
+  { 0x00, "Normal",  "Filling",  "Rainwater", false },  // Filling from rainwater (or refresh fill - see is_refresh tracking)
+  { 0x01, "Normal",  "Idle",     "Rainwater", false },  // Normal mode, idle on rainwater
+  { 0x02, "Backup",  "Idle",     "Mains",     false },  // Rainwater tank empty, using mains water
+  { 0x04, "Normal",  "Idle",     "Mains",     false },  // Normal mode, idle on mains selected
+  { 0x08, "Holiday", "Idle",     "Mains",     false },  // Holiday mode, idle
+  { 0x0C, "Holiday", "Filling",  "Mains",     false },  // Holiday mode, filling from mains
+  { 0x10, "Refresh", "Draining", "Rainwater", true  },  // Refresh cycle, draining tank
+  { 0xC0, "Calibration", "Draining", "Rainwater", false }, //Initial calibration, draining to 50%
+  { 0x40, "Calibration", "Filling", "Rainwater", false } // Initial calibration, refilling rainwater to 70% then mains to find max level
 };
 static const size_t MODE_MAPPINGS_COUNT = sizeof(MODE_MAPPINGS) / sizeof(MODE_MAPPINGS[0]);
 
@@ -103,7 +49,8 @@ void RainDirectorComponent::setup() {
 void RainDirectorComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Rain Director:");
   LOG_SENSOR("  ", "Tank Level", this->tank_level_sensor_);
-  LOG_TEXT_SENSOR("  ", "Mode Code", this->mode_code_sensor_);
+  LOG_SENSOR("  ", "Mode Code", this->mode_code_sensor_);
+  LOG_SENSOR("  ", "State Code", this->state_code_sensor_);
   LOG_TEXT_SENSOR("  ", "Mode", this->mode_text_sensor_);
   LOG_TEXT_SENSOR("  ", "Status", this->status_text_sensor_);
   LOG_TEXT_SENSOR("  ", "Source", this->source_text_sensor_);
@@ -209,25 +156,12 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
     std::string mode_hex = hex.substr(4, 2);
     int mode_byte = this->hex_to_int_(mode_hex);
 
-    // Composite key lookup through MODE_MAPPINGS array with two-tier priority matching
-    // INIT-BACKUP-MODES-REQ-FN-01: Use both mode byte and status byte for matching
-    // Priority: status-specific entries (match_any_status=false) checked first, then status-agnostic entries (match_any_status=true)
+    // Linear search through MODE_MAPPINGS array to find matching code
     decltype(&MODE_MAPPINGS[0]) mapping = nullptr;
     for (size_t i = 0; i < MODE_MAPPINGS_COUNT; i++) {
       if (MODE_MAPPINGS[i].code == mode_byte) {
-        // Check if this entry requires status byte matching
-        if (!MODE_MAPPINGS[i].match_any_status) {
-          // Status-specific: both mode and status must match
-          if (MODE_MAPPINGS[i].status_byte == this->last_status_byte_) {
-            mapping = &MODE_MAPPINGS[i];
-            break;
-          }
-          // Continue searching - this mode byte might have a fallback mapping
-        } else {
-          // Status-agnostic: mode byte match is sufficient (fallback behavior)
-          mapping = &MODE_MAPPINGS[i];
-          break;
-        }
+        mapping = &MODE_MAPPINGS[i];
+        break;
       }
     }
 
@@ -238,14 +172,7 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
 
     if (mapping == nullptr) {
       // Unknown code - log warning and publish "Unknown" for all text sensors
-      // INIT-BACKUP-MODES-REQ-NFN-04: Unknown State Handling with edge case detection
-      if (!this->status_byte_received_) {
-        // Status byte not yet received (e.g., ESP32 boot before first JSON message)
-        ESP_LOGW(TAG, "Unknown mode 0x%02X (status not yet received)", mode_byte);
-      } else {
-        // Status byte received but combination is unknown
-        ESP_LOGW(TAG, "Unknown mode/status combination: mode=0x%02X status=0x%02X", mode_byte, this->last_status_byte_);
-      }
+      ESP_LOGW(TAG, "Unknown mode code: %s - %d", mode_hex, mode_byte);
       mode_str = "Unknown";
       status_str = "Unknown";
       source_str = "Unknown";
@@ -269,15 +196,11 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
       source_str = mapping->source;
     }
 
-    // Publish mode code in hexadecimal format (0xXX) for diagnostics
-    // INIT-BACKUP-MODES-REQ-FN-04: Hexadecimal Mode Code Display
+    // Publish mode code (raw byte for diagnostics)
     if (mode_byte != this->last_mode_) {
       this->last_mode_ = mode_byte;
-      if (this->mode_code_sensor_ != nullptr) {
-        char buffer[5];  // Holds "0xXX\0"
-        snprintf(buffer, sizeof(buffer), "0x%02X", mode_byte);
-        this->mode_code_sensor_->publish_state(buffer);
-      }
+      if (this->mode_code_sensor_ != nullptr)
+        this->mode_code_sensor_->publish_state(mode_byte);
     }
 
     // Publish mode
@@ -320,9 +243,9 @@ void RainDirectorComponent::process_json_(const std::string &json) {
   }
   if (state_val >= 0 && state_val != this->last_state_) {
     this->last_state_ = state_val;
-    // Store status byte for composite key lookup
-    this->last_status_byte_ = static_cast<uint8_t>(state_val);
-    this->status_byte_received_ = true;
+    if (this->state_code_sensor_ != nullptr)
+      this->state_code_sensor_->publish_state(state_val);
+    ESP_LOGI(TAG, "State: %d", state_val);
   }
 }
 
@@ -344,3 +267,8 @@ int RainDirectorComponent::hex_to_int_(const std::string &hex) {
 
 }  // namespace rain_director
 }  // namespace esphome
+
+
+
+
+

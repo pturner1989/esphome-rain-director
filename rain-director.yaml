@@ -9,7 +9,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: "pturner1989.rain-director"  # Update with your GitHub username
-    version: "1.0.0"
+    version: "1.0.3"
 
 esp32:
   board: esp32dev
@@ -146,6 +146,7 @@ improv_serial:
 external_components:
   - source: github://pturner1989/esphome-rain-director@main
     components: [ rain_director ]
+    refresh: 1s
 
 uart:
   id: uart_bus
@@ -192,6 +193,10 @@ rain_director:
 
   mode_code:
     name: "Mode Code"
+    entity_category: diagnostic
+
+  state_code:
+    name: "State Code"
     entity_category: diagnostic
 
   mode:
