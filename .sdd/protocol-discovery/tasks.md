@@ -126,7 +126,7 @@ Cap the parsed result at 256 bytes, above the capture group size and above any f
 
 ### Task 4: Replay refused while capture is off
 
-- **Status:** Backlog
+- **Status:** Done
 - **Blocked by:** Task 3
 
 **What to build:**

@@ -28,7 +28,12 @@ api:
         hex: string
       then:
         - lambda: |-
-            if (!id(bus_capture).state) return;
+            // Checked before the input, so a forgotten switch is named
+            // ahead of anything wrong with the bytes.
+            if (!id(bus_capture).state) {
+              ESP_LOGW("rd.replay", "Replay needs Bus Capture on. Nothing sent.");
+              return;
+            }
             auto nibble = [](char c) -> int {
               if (c >= '0' && c <= '9') return c - '0';
               if (c >= 'a' && c <= 'f') return c - 'a' + 10;
