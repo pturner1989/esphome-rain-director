@@ -111,9 +111,12 @@ api:
                            "Nothing sent.", hex.c_str());
                   break;
                 case REASON_LIMIT:
+                  // The input is not quoted here. It runs to 770 characters or
+                  // more, so the logger would cut the line before the limit
+                  // reached the operator.
                   ESP_LOGW("rd.replay",
-                           "Replay input '%s' is longer than the 256 byte limit. "
-                           "Nothing sent.", hex.c_str());
+                           "Replay input is longer than the 256 byte limit. "
+                           "Nothing sent.");
                   break;
                 default:
                   ESP_LOGW("rd.replay",
