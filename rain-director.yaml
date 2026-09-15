@@ -130,6 +130,28 @@ api:
               }
               return;
             }
+            // The bus is half-duplex and shared, so writing blind can collide
+            // with a frame already in flight and corrupt it. While this lambda
+            // runs the component is not draining the port, so a rising byte
+            // count means traffic is still arriving. Wait for the count to stop
+            // moving, which means the bus has gone quiet.
+            const uint32_t gap_ms = 12;
+            const uint32_t wait_ms = 250;
+            uint32_t started = millis();
+            bool quiet = false;
+            while (millis() - started < wait_ms) {
+              int before = id(uart_bus)->available();
+              // Near the buffer limit the count stops rising even though the
+              // bus is busy, so treat that as busy rather than quiet.
+              if (before >= 200) break;
+              delay(gap_ms);
+              if (id(uart_bus)->available() == before) { quiet = true; break; }
+            }
+            if (!quiet) {
+              ESP_LOGW("rd.replay",
+                       "Bus stayed busy for %ums. Sending anyway; a collision may "
+                       "corrupt this frame or another.", (unsigned) wait_ms);
+            }
             id(uart_bus)->write_array(out.data(), out.size());
 
 ota:

@@ -319,6 +319,7 @@ Replay input is empty. Nothing sent.
 Replay input '...' holds no bytes. Nothing sent.
 Replay input '...' holds a character that is not a hex digit or a separator. Nothing sent.
 Replay input is longer than the 256 byte limit. Nothing sent.
+Bus stayed busy for 250ms. Sending anyway; a collision may corrupt this frame or another.
 Replay input '...' is not whole hex digit pairs. Nothing sent.
 ```
 
@@ -326,6 +327,9 @@ When the input is accepted, the log shows an `rd.tx` line with the bytes you sen
 
 ### Warnings
 
+- **Replay waits for a quiet bus before writing.** The bus is half-duplex and shared, so a blind write
+  can collide with a frame already in flight and corrupt it. Replay watches for a gap of about 12ms
+  and gives up after 250ms, sending anyway with a warning. A collision is less likely, not impossible.
 - **Replay writes to a controller that operates mains water valves.** Choose what you send deliberately. Replaying a captured display or level frame can make the controller act.
 - **The bus is half-duplex and shared.** A replayed frame can collide with a frame already in flight. The worst case is a corrupted read and a retry.
 - **Switch Bus Capture off when the session ends.** Nothing turns it off except a restart.
