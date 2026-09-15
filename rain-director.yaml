@@ -135,10 +135,11 @@ api:
             // runs the component is not draining the port, so a rising byte
             // count means traffic is still arriving. Wait for the count to stop
             // moving, which means the bus has gone quiet.
-            // A frame takes about 10ms to send, and the inter-frame gaps in this
-            // traffic are shorter than that, so a short quiet window still
-            // collides. Hold out for the longer gap between polling cycles.
-            const uint32_t gap_ms = 40;
+            // Detect the gap as early as possible rather than waiting it out.
+            // Bytes within a frame arrive back to back, so a few milliseconds of
+            // silence already means we are between frames. Waiting longer only
+            // spends the gap we need: the frame itself takes about 10ms to send.
+            const uint32_t gap_ms = 4;
             const uint32_t wait_ms = 800;
             uint32_t started = millis();
             bool quiet = false;

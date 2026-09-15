@@ -328,7 +328,7 @@ When the input is accepted, the log shows an `rd.tx` line with the bytes you sen
 ### Warnings
 
 - **Replay waits for a quiet bus before writing.** The bus is half-duplex and shared, so a blind write
-  can collide with a frame already in flight and corrupt it. Replay watches for a gap of about 40ms
+  can collide with a frame already in flight and corrupt it. Replay watches for a gap of about 4ms
   and gives up after 800ms, sending anyway with a warning. A collision is less likely, not impossible.
 - **Replay writes to a controller that operates mains water valves.** Choose what you send deliberately. Replaying a captured display or level frame can make the controller act.
 - **The bus is half-duplex and shared.** A replayed frame can collide with a frame already in flight. The worst case is a corrupted read and a retry.
