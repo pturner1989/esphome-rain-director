@@ -12,6 +12,7 @@ DEPENDENCIES = ["uart"]
 AUTO_LOAD = ["sensor", "text_sensor"]
 
 CONF_TANK_LEVEL = "tank_level"
+CONF_OUTSIDE_TANK_LEVEL = "outside_tank_level"
 CONF_MODE_CODE = "mode_code"
 CONF_STATE_CODE = "state_code"
 CONF_MODE_TEXT = "mode"
@@ -27,6 +28,12 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(RainDirectorComponent),
         cv.Optional(CONF_TANK_LEVEL): sensor.sensor_schema(
+            unit_of_measurement=UNIT_PERCENT,
+            icon=ICON_WATER_PERCENT,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_OUTSIDE_TANK_LEVEL): sensor.sensor_schema(
             unit_of_measurement=UNIT_PERCENT,
             icon=ICON_WATER_PERCENT,
             accuracy_decimals=0,
@@ -57,10 +64,19 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+    # Address 3 is answered in the gap after its poll, so wake on arrival
+    # rather than at the next loop tick. ESPHome 2026.10 and later always
+    # wake on arrival and no longer offer the request.
+    if hasattr(uart, "request_wake_loop_on_rx"):
+        uart.request_wake_loop_on_rx()
 
     if CONF_TANK_LEVEL in config:
         sens = await sensor.new_sensor(config[CONF_TANK_LEVEL])
         cg.add(var.set_tank_level_sensor(sens))
+
+    if CONF_OUTSIDE_TANK_LEVEL in config:
+        sens = await sensor.new_sensor(config[CONF_OUTSIDE_TANK_LEVEL])
+        cg.add(var.set_outside_tank_level_sensor(sens))
 
     if CONF_MODE_CODE in config:
         sens = await sensor.new_sensor(config[CONF_MODE_CODE])

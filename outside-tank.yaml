@@ -1,0 +1,85 @@
+# Optional package: answers the controller's outside tank poll with the
+# level from a separate ESPHome tank sensor, sent straight over the LAN with
+# no Home Assistant in between. Include it beside rain-director.yaml, and
+# give the tank sensor the provider half described in the README.
+#
+# Both devices need the same outside_tank_key in their secrets.yaml.
+
+substitutions:
+  outside_tank_device: "rainwater-tank"  # esphome name of the tank sensor
+  outside_tank_sensor_id: "tank_level"   # id of its level sensor, in percent
+
+udp:
+
+packet_transport:
+  platform: udp
+  providers:
+    - name: ${outside_tank_device}
+      encryption: !secret outside_tank_key
+
+sensor:
+  # The tank sensor sends at least every 30s. Five minutes of silence
+  # becomes NAN, which leaves the outside tank poll unanswered rather than
+  # repeating a stale level. The controller keeps the last level it was
+  # given, so silence does not clear it there. Outside Tank Level, from
+  # rain-director.yaml, shows the level the controller holds.
+  - platform: packet_transport
+    id: outside_tank_level
+    provider: ${outside_tank_device}
+    remote_id: ${outside_tank_sensor_id}
+    internal: true
+    filters:
+      - timeout: 5min
+    on_value:
+      then:
+        - if:
+            condition:
+              switch.is_off: outside_tank_manual
+            then:
+              - lambda: id(rain_director_bus).set_outside_level(x);
+
+number:
+  # Sends this level in place of the tank sensor's until Outside Tank
+  # Manual Override is turned off, and turns the responder on so it is sent
+  - platform: template
+    name: "Outside Tank Manual Level"
+    id: outside_tank_manual_level
+    unit_of_measurement: "%"
+    icon: "mdi:hand-water"
+    entity_category: diagnostic
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    initial_value: 50
+    set_action:
+      - switch.turn_on: outside_tank_manual
+      - switch.turn_on: outside_tank_responder
+      - lambda: id(rain_director_bus).set_outside_level(x);
+
+switch:
+  # The controller may act on the level it is given. Remembered across
+  # restarts, so the controller keeps receiving the level after an update.
+  - platform: template
+    name: "Outside Tank Responder"
+    id: outside_tank_responder
+    icon: "mdi:hydraulic-oil-level"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - lambda: id(rain_director_bus).set_outside_level_enabled(true);
+    on_turn_off:
+      - lambda: id(rain_director_bus).set_outside_level_enabled(false);
+
+  # On by hand, it holds the level being sent. Off, the tank sensor's
+  # latest reading is sent again.
+  - platform: template
+    name: "Outside Tank Manual Override"
+    id: outside_tank_manual
+    icon: "mdi:hand-back-right"
+    entity_category: diagnostic
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      - lambda: id(rain_director_bus).set_outside_level(id(outside_tank_level).state);

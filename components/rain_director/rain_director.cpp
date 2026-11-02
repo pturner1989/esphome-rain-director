@@ -1,5 +1,6 @@
 #include "rain_director.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace rain_director {
@@ -49,6 +50,7 @@ void RainDirectorComponent::setup() {
 void RainDirectorComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Rain Director:");
   LOG_SENSOR("  ", "Tank Level", this->tank_level_sensor_);
+  LOG_SENSOR("  ", "Outside Tank Level", this->outside_tank_level_sensor_);
   LOG_SENSOR("  ", "Mode Code", this->mode_code_sensor_);
   LOG_SENSOR("  ", "State Code", this->state_code_sensor_);
   LOG_TEXT_SENSOR("  ", "Mode", this->mode_text_sensor_);
@@ -140,7 +142,20 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
   if (hex.substr(0, 5) == "20123" || hex.substr(0, 4) == "2071" || hex.substr(0, 4) == "2010") {
     return;
   }
-  if (hex.substr(0, 5) == "30123") {
+  // =======================================================
+  // DEVICE 30: OUTSIDE TANK (not fitted, so nothing answers)
+  // =======================================================
+
+  // Poll: <3012[CHECKSUM]
+  if (hex == "30123c") {
+    this->answer_address_3_poll_();
+    return;
+  }
+  // Our own replies come back as an echo. Anything else sent to address 3
+  // has not been seen before, so log it.
+  if (hex.substr(0, 1) == "3") {
+    if (hex.substr(0, 4) != "3033" && hex.substr(0, 4) != "3053")
+      ESP_LOGI(TAG, "Address 3 frame: <%s", hex.c_str());
     return;
   }
   if (hex.substr(0, 5) == "40123" || hex.substr(0, 4) == "4071" || hex.substr(0, 4) == "4010" || hex.substr(0, 4) == "4033") {
@@ -233,6 +248,9 @@ void RainDirectorComponent::process_hex_code_(const std::string &code) {
 
 void RainDirectorComponent::process_json_(const std::string &json) {
   int top_val = this->extract_json_int_(json, "top");
+  // The controller's own view of the outside tank, whichever device answers
+  // its poll: a sensor wired to it or this component.
+  int bottom_val = this->extract_json_int_(json, "bottom");
   int state_val = this->extract_json_int_(json, "state");
 
   if (top_val >= 0 && top_val != this->last_top_) {
@@ -240,6 +258,12 @@ void RainDirectorComponent::process_json_(const std::string &json) {
     if (this->tank_level_sensor_ != nullptr)
       this->tank_level_sensor_->publish_state(top_val);
     ESP_LOGI(TAG, "Level: %d%%", top_val);
+  }
+  if (bottom_val >= 0 && bottom_val != this->last_bottom_) {
+    this->last_bottom_ = bottom_val;
+    if (this->outside_tank_level_sensor_ != nullptr)
+      this->outside_tank_level_sensor_->publish_state(bottom_val);
+    ESP_LOGI(TAG, "Outside level: %d%%", bottom_val);
   }
   if (state_val >= 0 && state_val != this->last_state_) {
     this->last_state_ = state_val;
@@ -259,6 +283,57 @@ int RainDirectorComponent::extract_json_int_(const std::string &json, const std:
   if (end == std::string::npos) return -1;
   
   return atoi(json.substr(start, end - start).c_str());
+}
+
+void RainDirectorComponent::press_keys(uint8_t keys) {
+  this->pending_keys_ = keys;
+  this->key_polls_left_ = 3;
+  ESP_LOGI(TAG, "Pressing keys 0x%02X on the next address 3 poll", keys);
+}
+
+void RainDirectorComponent::answer_address_3_poll_() {
+  char body[16];
+
+  // A press takes priority over the level until it has been released.
+  if (this->key_polls_left_ > 0) {
+    // The last poll of a press carries no keys: that is the release.
+    uint8_t keys = this->key_polls_left_ > 1 ? this->pending_keys_ : 0;
+    this->key_polls_left_--;
+    snprintf(body, sizeof(body), "3033%02x", keys);
+    this->write_frame_(body);
+    ESP_LOGI(TAG, "Answered address 3 with keys 0x%02X", keys);
+    // Logged again once the press is over, even if unchanged.
+    this->last_outside_sent_ = -1;
+    return;
+  }
+
+  // An unavailable level stays silent, as an unfitted sensor does,
+  // rather than reporting a stale or invented one.
+  if (!this->outside_level_enabled_ || std::isnan(this->outside_level_)) {
+    this->last_outside_sent_ = -1;
+    return;
+  }
+  // Same layout as the header tank sensor at address 2: level, then 80.
+  int level = (int) roundf(clamp(this->outside_level_, 0.0f, 100.0f));
+  snprintf(body, sizeof(body), "3053%02x80", level);
+  this->write_frame_(body);
+  if (level != this->last_outside_sent_) {
+    this->last_outside_sent_ = level;
+    ESP_LOGI(TAG, "Answered address 3 with outside level %d%%", level);
+  }
+}
+
+void RainDirectorComponent::write_frame_(const std::string &body) {
+  // The checksum is the XOR of every character from '<' to the end of the
+  // body, written as two lowercase hex digits.
+  std::string frame = "<" + body;
+  uint8_t checksum = 0;
+  for (char c : frame)
+    checksum ^= (uint8_t) c;
+  char tail[4];
+  snprintf(tail, sizeof(tail), "%02x\r", checksum);
+  frame += tail;
+  this->write_array((const uint8_t *) frame.data(), frame.size());
 }
 
 int RainDirectorComponent::hex_to_int_(const std::string &hex) {

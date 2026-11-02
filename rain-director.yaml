@@ -170,7 +170,9 @@ captive_portal:
 improv_serial:
 
 external_components:
-  - source: github://pturner1989/esphome-rain-director@main
+  # Points at this branch so devices built from it get its component.
+  # Return it to @main before merging.
+  - source: github://pturner1989/esphome-rain-director@feature/protocol-discovery
     components: [ rain_director ]
     refresh: 1s
 
@@ -214,11 +216,16 @@ uart:
           delay(10);
 
 rain_director:
+  id: rain_director_bus
   uart_id: uart_bus
   
   tank_level:
     name: "Tank Level"
     id: tank_level   
+
+  # As the controller reports it, from whichever device answers its poll
+  outside_tank_level:
+    name: "Outside Tank Level"
 
   mode_code:
     name: "Mode Code"
@@ -348,6 +355,31 @@ switch:
     restore_mode: ALWAYS_OFF
 
 button:
+  # Experimental: answer the outside tank poll with front panel key bits
+  - platform: template
+    name: "Press Rainwater"
+    icon: "mdi:water"
+    on_press:
+      - lambda: id(rain_director_bus).press_keys(0x01);
+
+  - platform: template
+    name: "Press Mains"
+    icon: "mdi:water-pump"
+    on_press:
+      - lambda: id(rain_director_bus).press_keys(0x02);
+
+  - platform: template
+    name: "Press Holiday"
+    icon: "mdi:airplane"
+    on_press:
+      - lambda: id(rain_director_bus).press_keys(0x04);
+
+  - platform: template
+    name: "Press Recycle"
+    icon: "mdi:recycle"
+    on_press:
+      - lambda: id(rain_director_bus).press_keys(0x08);
+
   - platform: restart
     name: "Restart"
     entity_category: config

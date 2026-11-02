@@ -228,7 +228,8 @@ Where:
 - `DD` - Device ID (2-digit hex)
   - `10` = Display panel
   - `20` = Level sensor
-  - `30`, `40` = Other devices (purpose unknown)
+  - `30` = Outside tank level sensor. Polled every cycle; not fitted on the system this was captured from, so nothing answers
+  - `40` = Front panel keypad
 - `CC` - Command/message type (2-digit hex)
   - `53` = Status/data message
   - `71` = Version query
@@ -237,11 +238,33 @@ Where:
 - `PPPPPP` - Payload (variable length hex data)
   - For device 10 (display): First 2 bytes are the mode code
   - For device 20 (level): First 2 bytes are the tank level percentage (0-100)
-- `CC` - Checksum (2-digit hex)
+- `CC` - Checksum (2-digit hex): the XOR of every character from `<` to the end of the payload, in lowercase
+
+Each frame ends with a carriage return.
 
 Example messages:
 - `<1053000080XX` - Display panel showing mode code 0x00 (Filling)
 - `<20535080XX` - Level sensor reporting 50% full
+
+### Polling Cycle
+
+The controller repeats this cycle roughly every 110ms:
+
+| Frame | Meaning |
+|-------|---------|
+| `<1053MMSS` | Mode `MM` and source `SS`, sent to the display |
+| `<2012` then `<2053LL80` | Level sensor polled; it answers with the header tank level `LL` |
+| `<3012` | Outside tank sensor polled. Unanswered unless one is fitted |
+| `<4012` then `<4033KK` | Keypad polled; it answers with the keys held, `KK` |
+
+### Keypad Bits
+
+The keypad answers `<403300` when nothing is pressed. A press is held for two polls:
+
+- `0x01` = Rainwater (also cancels a Refresh in progress)
+- `0x02` = Mains
+- `0x04` = Holiday
+- `0x08` = Recycle (Refresh)
 
 ### Known Mode Codes
 
@@ -339,9 +362,74 @@ When the input is accepted, the log shows an `rd.tx` line with the bytes you sen
 
 Switch **Bus Capture** off. The logs return to normal and the replay action stops accepting input.
 
+## Experimental: Answering the Outside Tank Poll
+
+Address `30` is polled every cycle and, without an outside tank sensor, nothing answers it. The component can answer that poll itself. The first time anything answers, the controller sends `<3010` to that address once; what a real sensor replies to it is not yet known.
+
+### Key presses
+
+The **Press Rainwater**, **Press Mains**, **Press Holiday** and **Press Recycle** buttons answer the next three outside tank polls as the keypad would: the key twice, then a release. **The controller ignores them**: in testing, Press Mains was answered on time and the mode did not change. They remain for further experiments; use Bus Capture sparingly while trying them, as its logging pauses the device long enough to miss the poll.
+
+### Outside tank level
+
+The controller polls for an outside tank level sensor at address `30`. If you already measure your outside tank with another ESPHome device, the optional `outside-tank.yaml` package can pass that level on. It answers the poll in the same layout the header tank sensor uses, `<3053LL80`. **This works**: the controller's own status line changes from `"bottom":"0"` to the level sent.
+
+The level travels straight between the two devices over UDP, encrypted with a shared key, with no Home Assistant in between. The tank device sends it at least every 30 seconds.
+
+The controller may act on this level, for example by switching to mains when the outside tank reads low. That has not been observed yet.
+
+**The controller keeps the last level it was given.** If the tank device stops sending, this package stops answering after five minutes, but the controller goes on showing the old level, probably until it restarts.
+
+#### Publishing a level from another ESPHome device
+
+You need:
+
+- An ESPHome device that measures the outside tank and has a sensor giving its level **in percent, 0 to 100**
+- Both devices on the same network, since the level is sent as a UDP broadcast
+- A shared key: any string you choose, saved as `outside_tank_key` in `secrets.yaml` on both devices
+
+**1. On the tank device**, add the following, naming the `id` of its level sensor under `sensors`:
+
+```yaml
+udp:
+
+packet_transport:
+  platform: udp
+  update_interval: 30s
+  encryption: !secret outside_tank_key
+  sensors:
+    - tank_level   # the id of your level sensor
+```
+
+Install it. Nothing changes for Home Assistant; the device also starts broadcasting its level.
+
+**2. On the Rain Director device**, add `outside-tank.yaml` to the package files, and tell it the tank device's `esphome: name:` and the sensor's `id`:
+
+```yaml
+packages:
+  remote_package:
+    url: https://github.com/pturner1989/esphome-rain-director
+    ref: main
+    files: [rain-director.yaml, outside-tank.yaml]
+    refresh: 1d
+
+substitutions:
+  outside_tank_device: "rainwater-tank"  # esphome name of the tank device
+  outside_tank_sensor_id: "tank_level"   # id of its level sensor
+```
+
+Install it.
+
+**3. Switch on Outside Tank Responder** under the Rain Director's configuration entities. It is remembered across restarts. Within a few seconds the device log shows `Answered address 3 with outside level NN%`. The **Outside Tank Level** sensor follows once the controller next reports its levels, which can take up to a minute or so.
+
+#### Setting the level by hand
+
+For testing, **Outside Tank Manual Level** (a diagnostic entity) sends a level of your choosing instead of the tank device's. Setting it turns on both **Outside Tank Manual Override** and Outside Tank Responder, so the level is sent straight away and the tank device's readings stop replacing it. Turn Outside Tank Manual Override off to go back to the tank device. It is off after every restart.
+
 ## Sensors
 
 - **Tank Level** - Tank fill percentage (0-100%)
+- **Outside Tank Level** - Outside tank fill percentage as the controller reports it, from a sensor wired to it or from `outside-tank.yaml`. Reads 0 when neither is present
 - **Tank Volume** - Current water volume in liters
 - **Rainwater Used** - Total rainwater consumption
 - **Mains Used** - Total mains water consumption
@@ -356,6 +444,9 @@ Switch **Bus Capture** off. The logs return to normal and the replay action stop
 - **Restart** - Restart the ESP32
 - **Reset Consumption Counters** - Reset rainwater and mains usage totals
 - **Bus Capture** - Log every byte on the RS-485 bus and allow replay. Off after every restart. See [Bus Capture and Replay](#bus-capture-and-replay)
+- **Press Rainwater / Mains / Holiday / Recycle** - Experimental key presses. See [Answering the Outside Tank Poll](#experimental-answering-the-outside-tank-poll)
+- **Outside Tank Responder** - Only with `outside-tank.yaml`. Sends the outside tank level to the controller. Remembered across restarts
+- **Outside Tank Manual Level** / **Outside Tank Manual Override** - Only with `outside-tank.yaml`. Send a level by hand. See [Setting the level by hand](#setting-the-level-by-hand)
 
 ## License
 
